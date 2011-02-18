@@ -3,7 +3,7 @@
 
 == Introduction ==
     GAE Scaffold is made so you can simply fill in the blanks to get a new application up and running very quickly.
-    It "just works" straight out of the box, which includes all tests passing, and no external installations required.
+    It "just works" straight out of the box, which includes all tests passing, and no external installations required beyond GAE itself.
     To get it running with a production account you'll have to make a few changes described below - these have been minimized as much as possible.
     Given that starting point, you can easily modify anything and everything to suit your needs.
 
@@ -25,7 +25,9 @@
 
 == Get Google App Engine ==
     Download: http://code.google.com/appengine/downloads.html
-    Extract it somewhere memorable
+    Extract it somewhere memorable. And you probably want to add its location to your path:
+        export PATH=${PATH}:/path/to/google_appengine/
+        export PYTHONPATH=${PYTHONPATH}:/path/to/google_appengine/
 
 
 == Mandatory Modifications ==
@@ -49,7 +51,7 @@
 == Common Commands ==
 
 === Run Development Server ===
-    python /path/to/gae/dev_appserver.py --debug .
+    dev_appserver.py --debug .
     Local URL: http://localhost:8080/
 
 === Deploy to Production ===
@@ -57,13 +59,5 @@
     Live URL: http://YOUR_APP_ID.appspot.com/
 
 === Run Tests ===
-    python nosetests --with-gae --gae-lib-root=/path/to/gae --tests=tests/
-
-
-
-== Setup Development Environment (Linux) ==
-    Add the extracted GAE path to PATH var with these lines in .bashrc file:
-        export PATH=${PATH}:/path/to/google_appengine/
-        export PYTHONPATH=${PYTHONPATH}:/path/to/google_appengine/
-    Install nose and webtest (for testing): sudo easy_install nose nosegae webtest
+    python test.py --with-gae --gae-lib-root=/path/to/gae --tests=tests/
 

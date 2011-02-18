@@ -43,7 +43,7 @@ class TestIndex(TestBase):
 class TestSitemap(TestBase):
 
     def test_sitemap(self):
-        response = self.app.get('/sitemap')
+        response = self.app.get('/sitemap.xml')
         assert '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' in response
         assert self.minify(response)
 
@@ -70,7 +70,7 @@ class TestAdmin(TestBase):
 
     def test_admin(self):
         response = self.app.get('/admin')
-        assert '<h2><a href="/admin">Admin</a></h2>' in response
+        assert '<h2>Admin</h2>' in response
 
         # test clearing memcache out
         response = self.app.post('/admin', {"memcache": "1"})
