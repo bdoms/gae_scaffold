@@ -1,0 +1,5 @@
+*.pyc
+*.min.css
+*.min.js
+static_map.py
+

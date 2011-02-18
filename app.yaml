@@ -1,0 +1,32 @@
+application: YOUR_APP_ID
+version: 1
+runtime: python
+api_version: 1
+
+default_expiration: "1000d"
+
+handlers:
+- url: /c
+  static_dir: static/c
+- url: /i
+  static_dir: static/i
+- url: /j
+  static_dir: static/j
+- url: /favicon.ico
+  static_files: static/i/favicon.png
+  upload: static/i/favicon.png
+- url: /robots.txt
+  static_files: static/robots.txt
+  upload: static/robots.txt
+
+- url: /admin.*
+  script: website.py
+  login: admin
+
+- url: /task.*
+  script: website.py
+  login: admin
+
+- url: /.*
+  script: website.py
+

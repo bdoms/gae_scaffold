@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        ## SEO: meta descriptions should be 155 characters or less
+        % if page_title:
+            <meta name="keywords" content="${page_title}, site name"/>
+            <meta name="description" content="${page_title} page on Site Name."/>
+        % else:
+            <meta name="keywords" content="site name"/>
+            <meta name="description" content="Site Name"/>
+        % endif
+
+        ## SEO: titles should be 70 characters or less
+        <title>
+            % if page_title:
+                ${page_title} |
+            % endif
+            Site Name
+        </title>
+
+        <link rel="shortcut icon" href="${h.static('/i/favicon.png')}" />
+        <link rel="stylesheet" type="text/css" href="${h.static('/c/main.css')}" />
+
+        <script type="text/javascript" src="${h.static('/j/main.js')}"></script>
+    </head>
+    <body>
+        <header>
+            <h1><a href="/">Site Name</a></h1>
+        </header>
+
+        <nav>
+
+        </nav>
+
+        <section>
+            % if flash:
+                <div class="flash">
+                    <p>${flash}</p>
+                </div>
+            % endif
+            ${next.body()}
+        </section>
+
+        <footer>
+            <ul>
+                % if is_admin:
+                    <li><a href="/admin">Admin</a></li>
+                % endif
+                <li><a href="/terms">Terms of Service</a></li>
+                <li><a href="/privacy">Privacy Policy</a></li>
+            </ul>
+        </footer>
+    </body>
+</html>
+

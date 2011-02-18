@@ -1,0 +1,11 @@
+<%inherit file="../base.html"/>
+
+<h2><a href="/admin">Admin</a></h2>
+
+<p><a href="${logout_url}">Log Out</a></p>
+
+<form action="" method="post">
+    <input type="hidden" name="memcache" value="1"/>
+    <input type="submit" value="Clear Memcache"/>
+</form>
+
