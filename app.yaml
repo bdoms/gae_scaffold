@@ -1,4 +1,4 @@
-application: YOUR_APP_ID
+application: your-app-id
 version: 1
 runtime: python
 api_version: 1

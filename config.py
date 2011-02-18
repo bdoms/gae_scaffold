@@ -1,8 +1,9 @@
 # templates
 import os
 
-TEMPLATES_DIR = 'templates'
-TEMPLATES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), TEMPLATES_DIR)
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATES_PATH = os.path.join(CURRENT_DIR, 'templates')
+LIB_PATH = os.path.join(CURRENT_DIR, 'lib')
 
 # URL routes
 from controllers import admin, error, index, sitemap, static, tasks

@@ -1,16 +1,24 @@
 # the base file and class for all controllers to inherit from
 
+# python imports
+import sys
+
 # app engine imports
 from google.appengine.ext import webapp
 from google.appengine.api import memcache, users
 from django.utils import simplejson
 
 # local imports
-from lib.gaesessions import get_current_session
-from lib.mako.lookup import TemplateLookup
-from lib.gae_html import cacheHTML, renderIfCached
-from config import TEMPLATES_PATH
 import helpers
+from config import TEMPLATES_PATH, LIB_PATH
+
+# add lib to the path
+sys.path.append(LIB_PATH)
+
+# lib imports
+from mako.lookup import TemplateLookup
+from gaesessions import get_current_session
+from gae_html import cacheHTML, renderIfCached
 
 
 class BaseController(webapp.RequestHandler):

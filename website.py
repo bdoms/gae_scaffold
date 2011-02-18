@@ -1,12 +1,13 @@
 # this is the main entry point for the application
 
 from google.appengine.ext import webapp
+from google.appengine.ext.webapp import util
 
 from config import ROUTES
 
 def main():
     app = application()
-    webapp.util.run_wsgi_app(app)
+    util.run_wsgi_app(app)
 
 def application():
     # change debug to False for production
