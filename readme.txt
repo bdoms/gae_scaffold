@@ -23,12 +23,29 @@
 
 = Setup =
 
+== Get Python ==
+    You need something in the 2.X line, and at least 2.5.
+    Download and install: http://www.python.org/download/
+
+
 == Get Google App Engine ==
     Download: http://code.google.com/appengine/downloads.html
     Extract it somewhere memorable. And you probably want to add its location to your path:
         export PATH=${PATH}:/path/to/google_appengine/
         export PYTHONPATH=${PYTHONPATH}:/path/to/google_appengine/
 
+
+== Get GAE Scaffold ==
+    You can simply download the source code, but none of the submodules will be included and you'll have to manually download them as well.
+    Alternatively, if you use Git (http://git-scm.com/download) then you can just clone the repository:
+        git clone --recursive https://github.com/bdoms/gae_scaffold.git
+    After that, if you want to track or save progress to your own server, then just change the remote:
+        git remote rm origin
+        git remote add origin http://path.to.you.server/project
+
+
+
+= Use =
 
 == Mandatory Modifications ==
 
@@ -39,7 +56,7 @@
  * A sample Terms of Service and Privacy Policy have been provided as examples, but you are solely responsible for their content and how they apply to your site
 
 
-== Continued Use ==
+== Going Forward ==
 
  * Add an entry to `templates/sitemap.xml` for each page you want indexed by search engines
  * Modify `static/robots.txt` to disallow any pages you don't want crawled
