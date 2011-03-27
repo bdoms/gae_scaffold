@@ -61,7 +61,7 @@
         You now have to do some manual editing to get the submodules to work correctly.
         First, copy (or integrate into the existing) .gitmodules file to the top level directory, as it won't work anywhere else:
 
-            git cp YOUR_SUBDIRECTORY/.gitmodules .gitmodules
+            cp YOUR_SUBDIRECTORY/.gitmodules .gitmodules
 
         Then edit the paths in it to properly reference the subdirectory:
 
@@ -72,6 +72,7 @@
 
             git submodule init
             git submodule update
+            git add .gitmodules
             git commit -m "Added submodules from gae_scaffold."
 
         Finally, to get updates that are pushed to GAE Scaffold, you can run this:
