@@ -36,13 +36,51 @@
 
 
 == Get GAE Scaffold ==
-    You can simply download the source code, but none of the submodules will be included and you'll have to manually download them as well.
-    Alternatively, if you use Git (http://git-scm.com/download) then you can just clone the repository:
-        git clone --recursive https://github.com/bdoms/gae_scaffold.git
-    After that, if you want to track or save progress to your own server, then just change the remote:
-        git remote rm origin
-        git remote add origin http://path.to.you.server/project
 
+    === Option 1: Download ===
+        You can simply download the source code from GitHub, but none of the submodules will be included and you'll have to manually download and extract them to the proper directories.
+
+    === Option 2: Clone ===
+        Using Git (http://git-scm.com/download) you can clone the repository and --recursive will get all the required submodules automatically:
+            git clone --recursive https://github.com/bdoms/gae_scaffold.git
+
+        After that, if you want to track or save progress to your own server, then just change the remote:
+            git remote rm origin
+            git remote add origin http://path.to.you.server/project
+
+        This is the simplest and easiest method, but requires that GAE Scaffold be used as the basis for a new project, which is its intended use.
+
+    === Option 3: Subtree Merge
+        If you already have an existing Git repository and you want to integrate this into the same project, then you should do what's called a subtree merge:
+
+            git remote add -f gae_scaffold https://github.com/bdoms/gae_scaffold.git
+            git merge --squash -s ours --no-commit gae_scaffold/master
+            git read-tree --prefix=YOUR_SUBDIRECTORY/ -u gae_scaffold/master
+            git commit -m "Merged subtree from gae_scaffold."
+
+        You now have to do some manual editing to get the submodules to work correctly.
+        First, copy (or integrate into the existing) .gitmodules file to the top level directory, as it won't work anywhere else:
+
+            git cp YOUR_SUBDIRECTORY/.gitmodules .gitmodules
+
+        Then edit the paths in it to properly reference the subdirectory:
+
+            [submodule "lib/submodule"] -> [submodule "YOUR_SUBDIRECTORY/lib/submodule"]
+            	path = lib/submodule -> path = YOUR_SUBDIRECTORY/lib/submodule
+
+        Now you can safely get the submodules up and running:
+
+            git submodule init
+            git submodule update
+            git commit -m "Added submodules from gae_scaffold."
+
+        Finally, to get updates that are pushed to GAE Scaffold, you can run this:
+
+            git pull --squash -s subtree gae_scaffold master
+
+    === As a Submodule ===
+        Using GAE Scaffold itself as a submodule directly is NOT recommended, as you are required to make changes that will never be pushed back to the original remote.
+        However, cloning into a new repository (as in Option 2) and then using that as a submodule should work as intended.
 
 
 = Use =
