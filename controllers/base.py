@@ -12,12 +12,14 @@ from django.utils import simplejson
 import helpers
 from config import TEMPLATES_PATH, LIB_PATH
 
+# must use same import for sessions as the middleware
+from lib.gaesessions import get_current_session
+
 # add lib to the path
 sys.path.append(LIB_PATH)
 
 # lib imports
 from mako.lookup import TemplateLookup
-from gaesessions import get_current_session
 from gae_html import cacheHTML, renderIfCached
 
 
