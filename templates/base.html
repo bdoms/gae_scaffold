@@ -1,56 +1,64 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="utf-8" />
-        ## SEO: meta descriptions should be 155 characters or less
+<!doctype html>
+<!--[if lt IE 7 ]> <html class="no-js ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]>    <html class="no-js ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]>    <html class="no-js ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+
+    ## SEO: titles should be 70 characters or less
+    <title>
         % if page_title:
-            <meta name="keywords" content="${page_title}, site name"/>
-            <meta name="description" content="${page_title} page on Site Name."/>
-        % else:
-            <meta name="keywords" content="site name"/>
-            <meta name="description" content="Site Name"/>
+            ${page_title} |
         % endif
+        Site Name
+    </title>
 
-        ## SEO: titles should be 70 characters or less
-        <title>
-            % if page_title:
-                ${page_title} |
+    ## SEO: meta descriptions should be 155 characters or less
+    % if page_title:
+        <meta name="description" content="${page_title} page on Site Name."/>
+        <meta name="author" content="Site Author"/>
+    % else:
+        <meta name="description" content="Site Name"/>
+        <meta name="author" content="Site Author"/>
+    % endif
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="${h.static('/i/favicon.png')}" />
+
+    <link rel="stylesheet" href="${h.static('/c/main.css')}" />
+    <script src="/j/modernizr-1.7.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1><a href="/">Site Name</a></h1>
+    </header>
+
+    <nav>
+
+    </nav>
+
+    <section>
+        % if flash:
+            <div class="flash">
+                <p>${flash}</p>
+            </div>
+        % endif
+        ${next.body()}
+    </section>
+
+    <footer>
+        <ul>
+            % if is_admin:
+                <li><a href="/admin">Admin</a></li>
             % endif
-            Site Name
-        </title>
+            <li><a href="/terms">Terms of Service</a></li>
+            <li><a href="/privacy">Privacy Policy</a></li>
+        </ul>
+    </footer>
 
-        <link rel="shortcut icon" href="${h.static('/i/favicon.png')}" />
-        <link rel="stylesheet" type="text/css" href="${h.static('/c/main.css')}" />
-
-        <script type="text/javascript" src="${h.static('/j/main.js')}"></script>
-    </head>
-    <body>
-        <header>
-            <h1><a href="/">Site Name</a></h1>
-        </header>
-
-        <nav>
-
-        </nav>
-
-        <section>
-            % if flash:
-                <div class="flash">
-                    <p>${flash}</p>
-                </div>
-            % endif
-            ${next.body()}
-        </section>
-
-        <footer>
-            <ul>
-                % if is_admin:
-                    <li><a href="/admin">Admin</a></li>
-                % endif
-                <li><a href="/terms">Terms of Service</a></li>
-                <li><a href="/privacy">Privacy Policy</a></li>
-            </ul>
-        </footer>
-    </body>
+    <script src="${h.static('/j/main.js')}"></script>
+</body>
 </html>
 
