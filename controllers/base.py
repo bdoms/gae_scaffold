@@ -27,12 +27,16 @@ class BaseController(webapp.RequestHandler):
 
     template_lookup = TemplateLookup(directories=[TEMPLATES_PATH], input_encoding='utf-8')
 
-    # add support for before and after methods on get requests
+    # add support for before and after methods on get and post requests
     def __getattribute__(self, name):
-        if name == "get":
+        if name in ["get", "post"]:
             if hasattr(self, "before"):
                 self.before()
-            value = webapp.RequestHandler.__getattribute__(self, name)
+            # don't run the regular action if there's already an error
+            if self.response.status == 200:
+                value = webapp.RequestHandler.__getattribute__(self, name)
+            else:
+                def value(*args, **kwargs): pass
             if hasattr(self, "after"):
                 self.after()
         else:
