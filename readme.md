@@ -28,12 +28,12 @@ This is a purposeful decision in order to stay as front-end agnostic as possible
 
 ### Get Python
 
-You need something in the 2.X line, and at least 2.5.
+You need something in the 2.X line, and at least 2.5.  
 Download and install: http://www.python.org/download/
 
 ### Get Google App Engine
 
-Download: http://code.google.com/appengine/downloads.html
+Download: http://code.google.com/appengine/downloads.html  
 Extract it somewhere memorable. And you probably want to add its location to your path:
 
 ```bash
@@ -134,7 +134,7 @@ However, cloning into a new repository (as in Option 2) and then using *that* as
 #### Run Development Server
 
 ```bash
-    dev_appserver.py --debug .
+dev_appserver.py --debug .
 ```
 
 This starts a server running at http://localhost:8080/
@@ -142,13 +142,13 @@ This starts a server running at http://localhost:8080/
 #### Run Tests
 
 ```bash
-    python test.py --with-gae --gae-lib-root=/path/to/gae --tests=tests/
+python test.py --with-gae --gae-lib-root=/path/to/gae --tests=tests/
 ```
 
 #### Deploy to Production
 
 ```bash
-    python lib/gae_deploy rel=static static/c static/j
+python lib/gae_deploy rel=static static/c static/j
 ```
 
 Note that you must have already created an application on Google App Engine with the matching ID in `app.yaml` for deploying to work.
