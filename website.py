@@ -1,18 +1,18 @@
 # this is the main entry point for the application
 
-from google.appengine.ext import webapp
-from google.appengine.ext.webapp import util
+import webapp2
 
-from config import ROUTES
+# URL routes
+from controllers import admin, error, index, sitemap, static, tasks
 
-def main():
-    app = application()
-    util.run_wsgi_app(app)
+ROUTES = [('/', index.IndexController),
+          ('/terms', static.StaticController),
+          ('/privacy', static.StaticController),
+          ('/sitemap.xml', sitemap.SitemapController),
+          ('/admin', admin.AdminController),
+          ('/task/sessions', tasks.SessionsController),
+          ('/(.*)', error.ErrorController)
+         ]
 
-def application():
-    # change debug to False for production
-    return webapp.WSGIApplication(ROUTES, debug=True)
-
-if __name__ == "__main__":
-    main()
-
+# change debug to False for production
+app = webapp2.WSGIApplication(ROUTES, debug=True)

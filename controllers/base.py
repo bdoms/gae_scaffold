@@ -4,9 +4,9 @@
 import sys
 
 # app engine imports
-from google.appengine.ext import webapp
 from google.appengine.api import memcache, users
 from django.utils import simplejson
+import webapp2
 
 # local imports
 import helpers
@@ -23,7 +23,7 @@ from mako.lookup import TemplateLookup
 from gae_html import cacheHTML, renderIfCached
 
 
-class BaseController(webapp.RequestHandler):
+class BaseController(webapp2.RequestHandler):
 
     template_lookup = TemplateLookup(directories=[TEMPLATES_PATH], input_encoding='utf-8')
 
@@ -33,14 +33,14 @@ class BaseController(webapp.RequestHandler):
             if hasattr(self, "before"):
                 self.before()
             # don't run the regular action if there's already an error
-            if self.response.status == 200:
-                value = webapp.RequestHandler.__getattribute__(self, name)
+            if self.response.status_int == 200:
+                value = webapp2.RequestHandler.__getattribute__(self, name)
             else:
                 def value(*args, **kwargs): pass
             if hasattr(self, "after"):
                 self.after()
         else:
-            value = webapp.RequestHandler.__getattribute__(self, name)
+            value = webapp2.RequestHandler.__getattribute__(self, name)
         return value
 
     def cacheAndRenderTemplate(self, filename, **kwargs):
@@ -127,4 +127,3 @@ def validateReferer(action):
             return controller.renderError(400)
         return action(*args, **kwargs)
     return decorate
-
