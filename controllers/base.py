@@ -1,11 +1,11 @@
 # the base file and class for all controllers to inherit from
 
 # python imports
+import json
 import sys
 
 # app engine imports
 from google.appengine.api import memcache, users
-from django.utils import simplejson
 import webapp2
 
 # local imports
@@ -75,7 +75,7 @@ class BaseController(webapp2.RequestHandler):
         self.renderTemplate("error.html", page_title=page_title)
 
     def renderJSON(self, data):
-        self.response.out.write(simplejson.dumps(data))
+        self.response.out.write(json.dumps(data))
 
     def cache(self, key, function, expires=86400):
         value = memcache.get(key)

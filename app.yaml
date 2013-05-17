@@ -7,10 +7,6 @@ threadsafe: true
 default_expiration: "1000d"
 
 libraries:
-- name: django
-  version: latest
-- name: markupsafe
-  version: latest
 - name: webapp2
   version: latest
 
