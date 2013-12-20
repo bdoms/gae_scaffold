@@ -15,7 +15,7 @@ Given that starting point, you can easily modify anything and everything to suit
 
 GAE Scaffold takes care of a lot of annoying boilerplate so that you write less code.
 It provides helper functions to do things like automatically render human readable errors or output JSON.
-It also includes a library of Git submodules to handle a wide array of common tasks like sessions, cache-busting, minification, and testing.
+It also includes a library of Git submodules to handle a wide array of common tasks like sessions, deployment, cache-busting, minification, and testing.
 GAE Scaffold's included templates use HTML5 with UTF-8 by default.
 
 ## What It Isn't
@@ -115,7 +115,6 @@ However, cloning into a new repository (as in Option 2) and then using *that* as
 
  * Generate `COOKIE_KEY` variable in `appengine_config.py` for session security
  * Replace `your-app-id` in `app.yaml` to upload the application
- * Set `debug=False` in `website.py` when done with development to disable front-end error reporting
  * Replace `YOU@YOUR_DOMAIN.com` in `templates/terms.html` for DMCA compliance
  * A sample Terms of Service and Privacy Policy have been provided as examples, but you are solely responsible for their content and how they apply to your site
 
@@ -153,4 +152,3 @@ python lib/gae_deploy rel=static static/c static/j
 
 Note that you must have already created an application on Google App Engine with the matching ID in `app.yaml` for deploying to work.
 This then creates a live version of your application at http://your-app-id.appspot.com/
-
