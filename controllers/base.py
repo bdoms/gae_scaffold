@@ -33,14 +33,20 @@ class BaseController(webapp2.RequestHandler):
     def __getattribute__(self, name):
         if name in ["get", "post"]:
             if hasattr(self, "before"):
-                self.before()
+                try:
+                    self.before()
+                except Exception as e:
+                    self.handle_exception(e, False)
             # don't run the regular action if there's already an error
             if self.response.status_int == 200:
                 value = webapp2.RequestHandler.__getattribute__(self, name)
             else:
                 def value(*args, **kwargs): pass
             if hasattr(self, "after"):
-                self.after()
+                try:
+                    self.after()
+                except Exception as e:
+                    self.handle_exception(e, False)
         else:
             value = webapp2.RequestHandler.__getattribute__(self, name)
         return value
@@ -71,12 +77,13 @@ class BaseController(webapp2.RequestHandler):
     def renderTemplate(self, filename, **kwargs):
         self.render(self.compileTemplate(filename, **kwargs))
 
-    def renderError(self, status_int):
+    def renderError(self, status_int, stacktrace=None):
         self.response.set_status(status_int)
         page_title = "Error " + str(status_int) + ": " + self.response.http_status_message(status_int)
-        self.renderTemplate("error.html", page_title=page_title)
+        self.renderTemplate("error.html", stacktrace=stacktrace, page_title=page_title)
 
     def renderJSON(self, data):
+        self.response.headers['Content-Type'] = "application/json"
         self.response.out.write(json.dumps(data))
 
     # this overrides the base class for handling things like 500 errors
@@ -85,9 +92,10 @@ class BaseController(webapp2.RequestHandler):
         logging.exception(exception)
 
         # if this is development, then print out a stack trace
-        if os.environ.get('SERVER_SOFTWARE', '').startswith('Development'):
-            super(BaseController, self).handle_exception(exception, True)
-            return
+        stacktrace = None
+        if helpers.debug():
+            import traceback
+            stacktrace = traceback.format_exc()
 
         # if the exception is a HTTPException, use its error code
         # otherwise use a generic 500 error code
@@ -96,7 +104,7 @@ class BaseController(webapp2.RequestHandler):
         else:
             status_int = 500
 
-        self.renderError(status_int)
+        self.renderError(status_int, stacktrace=stacktrace)
 
     def cache(self, key, function, expires=86400):
         value = memcache.get(key)

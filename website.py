@@ -15,4 +15,4 @@ ROUTES = [('/', index.IndexController),
          ]
 
 # change debug to False for production
-app = webapp2.WSGIApplication(ROUTES, debug=True)
+app = webapp2.WSGIApplication(ROUTES, debug=False)
