@@ -43,6 +43,42 @@ def limit(string, max_len):
         string = string[0:max_len - 3] + "..."
     return string
 
+def plural(string):
+    last = string[-1]
+    if last == "y":
+        string = string[:-1] + "ies"
+    elif last != "s":
+        string += "s"
+    return string
+
+def nl2br(string):
+    return string.replace("\n", "<br/>")
+
+ORDINALS = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"]
+def ordinal(i):
+    if i < len(ORDINALS):
+        return ORDINALS[i]
+    else:
+        s = str(i)
+        last_two = s[-2:]
+        if last_two in ["11", "12", "13"]:
+            return s + "th"
+        else:
+            last = s[-1]
+            if last == "1":
+                return s + "st"
+            elif last == "2":
+                return s + "nd"
+            elif last == "3":
+                return s + "rd"
+            else:
+                return s + "th"
+
+def money(i):
+    # display an int in cents properly formatted as dollars
+    s = str(i)
+    return "$" + int_comma(s[:-2]) + "." + s[-2:]   
+
 def int_comma(i):
     # takes an int and returns it with commas every three digits
     s = str(i)
