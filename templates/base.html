@@ -1,11 +1,8 @@
 <!doctype html>
-<!--[if lt IE 7 ]> <html class="no-js ie6" lang="en"> <![endif]-->
-<!--[if IE 7 ]>    <html class="no-js ie7" lang="en"> <![endif]-->
-<!--[if IE 8 ]>    <html class="no-js ie8" lang="en"> <![endif]-->
-<!--[if (gte IE 9)|!(IE)]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<html>
 <head>
     <meta charset="utf-8"/>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
 
     ## SEO: titles should be 70 characters or less
     <title>
@@ -17,7 +14,7 @@
 
     ## SEO: meta descriptions should be 155 characters or less
     % if page_title:
-        <meta name="description" content="${page_title} page on Site Name."/>
+        <meta name="description" content="${page_title} | Site Name."/>
         <meta name="author" content="Site Author"/>
     % else:
         <meta name="description" content="Site Name"/>
@@ -28,7 +25,6 @@
     <link rel="shortcut icon" href="${h.static('/i/favicon.png')}" />
 
     <link rel="stylesheet" href="${h.static('/c/main.css')}" />
-    <script src="/j/modernizr-1.7.min.js"></script>
 </head>
 <body>
     <header>
@@ -61,4 +57,3 @@
     <script src="${h.static('/j/main.js')}"></script>
 </body>
 </html>
-
