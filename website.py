@@ -14,5 +14,11 @@ ROUTES = [('/', index.IndexController),
           ('/(.*)', error.ErrorController)
          ]
 
-# change debug to False for production
-app = webapp2.WSGIApplication(ROUTES, debug=False)
+# any extra config needed when the app starts
+config = {}
+config['webapp2_extras.sessions'] = {
+    'secret_key': 'replace this with the output from os.urandom(64)',
+}
+
+# make sure debug is False for production
+app = webapp2.WSGIApplication(ROUTES, config=config, debug=False)

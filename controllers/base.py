@@ -6,16 +6,16 @@ import logging
 import os
 import sys
 
-# app engine imports
+# app engine api imports
 from google.appengine.api import memcache, users
+
+# app engine included libraries imports
 import webapp2
+from webapp2_extras import sessions
 
 # local imports
 import helpers
 from config import TEMPLATES_PATH, LIB_PATH
-
-# must use same import for sessions as the middleware
-from lib.gaesessions import get_current_session
 
 # add lib to the path
 sys.path.append(LIB_PATH)
@@ -29,27 +29,33 @@ class BaseController(webapp2.RequestHandler):
 
     template_lookup = TemplateLookup(directories=[TEMPLATES_PATH], input_encoding='utf-8')
 
-    # add support for before and after methods on get and post requests
-    def __getattribute__(self, name):
-        if name in ["get", "post"]:
-            if hasattr(self, "before"):
-                try:
-                    self.before()
-                except Exception as e:
-                    self.handle_exception(e, False)
-            # don't run the regular action if there's already an error
-            if self.response.status_int == 200:
-                value = webapp2.RequestHandler.__getattribute__(self, name)
-            else:
-                def value(*args, **kwargs): pass
-            if hasattr(self, "after"):
-                try:
-                    self.after()
-                except Exception as e:
-                    self.handle_exception(e, False)
-        else:
-            value = webapp2.RequestHandler.__getattribute__(self, name)
-        return value
+    def dispatch(self):
+        # get a session store for this request
+        self.session_store = sessions.get_store(request=self.request)
+
+        if hasattr(self, "before"):
+            try:
+                self.before()
+            except Exception as e:
+                self.handle_exception(e, False)
+
+        # only run the regular action if there isn't already an error or redirect
+        if self.response.status_int == 200:
+            webapp2.RequestHandler.dispatch(self)
+        
+        if hasattr(self, "after"):
+            try:
+                self.after()
+            except Exception as e:
+                self.handle_exception(e, False)
+
+        # save all sessions
+        self.session_store.save_sessions(self.response)
+
+    @webapp2.cached_property
+    def session(self):
+        # uses the default cookie key
+        return self.session_store.get_session()
 
     def cacheAndRenderTemplate(self, filename, **kwargs):
         def renderHTML():
@@ -122,21 +128,6 @@ class BaseController(webapp2.RequestHandler):
             user = users.get_current_user()
             self.user = user
         return user
-
-
-def withSession(action):
-    def decorate(*args,  **kwargs):
-        controller = args[0]
-        session = get_current_session()
-        if session:
-            if not session.is_active() or not session.sid:
-                session.regenerate_id()
-        else:
-            # this can happen during tests
-            session = {}
-        controller.session = session
-        return action(*args, **kwargs)
-    return decorate
 
 
 def removeSlash(action):
