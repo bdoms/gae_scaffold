@@ -1,9 +1,12 @@
 from google.appengine.api import memcache
-from google.appengine.ext import db
+from google.appengine.ext import ndb
 
 
-class Example(db.Model):
-    pass
+class User(ndb.Model):
+  first_name = ndb.StringProperty(required=True)
+  last_name = ndb.StringProperty(required=True)
+  is_admin = ndb.BooleanProperty(default=False)
+  created_date = ndb.DateTimeProperty(auto_now_add=True)
 
 
 # model helper functions
@@ -24,4 +27,3 @@ def toDict(model_object):
         else:
             d[prop] = getattr(model_object, prop)
     return d
-
