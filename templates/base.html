@@ -4,27 +4,27 @@
     <meta charset="utf-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
 
-    ## SEO: titles should be 70 characters or less
+    {# SEO: titles should be 70 characters or less #}
     <title>
-        % if page_title:
-            ${page_title} |
-        % endif
+        {% if page_title %}
+            {{page_title}} |
+        {% endif %}
         Site Name
     </title>
 
-    ## SEO: meta descriptions should be 155 characters or less
-    % if page_title:
-        <meta name="description" content="${page_title} | Site Name."/>
+    {# SEO: meta descriptions should be 155 characters or less #}
+    {% if page_title %}
+        <meta name="description" content="{{page_title}} | Site Name."/>
         <meta name="author" content="Site Author"/>
-    % else:
+    {% else %}
         <meta name="description" content="Site Name"/>
         <meta name="author" content="Site Author"/>
-    % endif
+    {% endif %}
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="${h.static('/i/favicon.png')}" />
+    <link rel="shortcut icon" href="{{h.static('/i/favicon.png')}}" />
 
-    <link rel="stylesheet" href="${h.static('/c/main.css')}" />
+    <link rel="stylesheet" href="{{h.static('/c/main.css')}}" />
 </head>
 <body>
     <header>
@@ -36,24 +36,24 @@
     </nav>
 
     <section>
-        % if flash:
+        {% if flash %}
             <div class="flash">
-                <p>${flash}</p>
+                <p>{{flash}}</p>
             </div>
-        % endif
-        ${next.body()}
+        {% endif %}
+        {% block content %}{% endblock %}
     </section>
 
     <footer>
         <ul>
-            % if is_admin:
+            {% if is_admin %}
                 <li><a href="/admin">Admin</a></li>
-            % endif
+            {% endif %}
             <li><a href="/terms">Terms of Service</a></li>
             <li><a href="/privacy">Privacy Policy</a></li>
         </ul>
     </footer>
 
-    <script src="${h.static('/j/main.js')}"></script>
+    <script src="{{h.static('/j/main.js')}}"></script>
 </body>
 </html>

@@ -10,6 +10,7 @@ import sys
 from google.appengine.api import memcache, users
 
 # app engine included libraries imports
+import jinja2
 import webapp2
 from webapp2_extras import sessions
 
@@ -21,13 +22,12 @@ from config import TEMPLATES_PATH, LIB_PATH
 sys.path.append(LIB_PATH)
 
 # lib imports
-from mako.lookup import TemplateLookup
 from gae_html import cacheHTML, renderIfCached
 
 
 class BaseController(webapp2.RequestHandler):
 
-    template_lookup = TemplateLookup(directories=[TEMPLATES_PATH], input_encoding='utf-8')
+    jinja_env = jinja2.Environment(autoescape=True, loader=jinja2.FileSystemLoader(TEMPLATES_PATH))
 
     def dispatch(self):
         # get a session store for this request
@@ -68,14 +68,14 @@ class BaseController(webapp2.RequestHandler):
         return self.render(html)
 
     def compileTemplate(self, filename, **kwargs):
-        template = self.template_lookup.get_template(filename)
+        template = self.jinja_env.get_template(filename)
         # add some standard variables
         kwargs["h"] = helpers
         kwargs["user"] = self.getUser()
         kwargs["is_admin"] = users.is_current_user_admin()
         if hasattr(self, "flash"):
             kwargs["flash"] = self.flash
-        return template.render_unicode(**kwargs)
+        return template.render(kwargs)
 
     def render(self, html):
         self.response.out.write(html)
