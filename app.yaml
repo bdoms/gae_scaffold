@@ -39,3 +39,13 @@ handlers:
 
 - url: /.*
   script: website.app
+
+skip_files:
+- ^(.*/)?.*\.py[co]$
+- ^(.*/)?\..*$
+- ^(.*/)?deploy.yaml$
+- ^config/.*\.template\..*$
+- ^tests/.*$
+- ^test.py$
+- ^(.*/)?readme.*$
+- ^lib/gae_deploy/lib/..*$
