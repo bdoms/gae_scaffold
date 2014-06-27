@@ -55,5 +55,8 @@
     </footer>
 
     <script src="{{h.static('/j/main.js')}}"></script>
+    {% if not h.debug() %}
+        {# include third-party scripts for tracking or advertising here #}
+    {% endif %}
 </body>
 </html>
