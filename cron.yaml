@@ -1,5 +1,0 @@
-cron:
-- description: daily session cleanup
-  url: /task/sessions
-  schedule: every 24 hours
-

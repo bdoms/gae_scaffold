@@ -1,15 +1,9 @@
-[submodule "lib/mako"]
-	path = lib/mako
-	url = git@github.com:bdoms/mako.git
 [submodule "lib/gae_deploy"]
 	path = lib/gae_deploy
 	url = git@github.com:bdoms/gae_deploy.git
 [submodule "lib/gae_html"]
 	path = lib/gae_html
 	url = git@github.com:bdoms/gae_html.git
-[submodule "lib/gaesessions"]
-	path = lib/gaesessions
-	url = git@github.com:bdoms/gae-sessions.git
 [submodule "lib/nose"]
 	path = lib/nose
 	url = https://github.com/obeattie/python-nose.git
