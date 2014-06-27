@@ -1,0 +1,7 @@
+# www.robotstxt.org/
+
+User-agent: Microsoft Office Protocol Discovery
+Disallow: /
+
+User-agent: *
+${robots}

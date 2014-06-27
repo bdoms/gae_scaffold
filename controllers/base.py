@@ -3,7 +3,6 @@
 # python imports
 import json
 import logging
-import os
 import sys
 
 # app engine api imports
@@ -16,7 +15,7 @@ from webapp2_extras import sessions
 
 # local imports
 import helpers
-from config import TEMPLATES_PATH, LIB_PATH
+from config.constants import TEMPLATES_PATH, LIB_PATH
 
 # add lib to the path
 sys.path.append(LIB_PATH)

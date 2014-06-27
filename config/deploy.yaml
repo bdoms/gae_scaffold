@@ -1,0 +1,24 @@
+branches:
+  default: develop
+  files:
+  - input: config/robots.template.txt
+    output: static/robots.txt
+  variables:
+    develop:
+      _version: _branch
+      robots: 'Disallow: /'
+    master:
+      _version: 1
+      robots: |
+        Disallow: /admin
+        Sitemap: /sitemap.xml
+
+branch_lists:
+  production:
+  - master
+
+static_dirs:
+- path: static/c
+  rel: static
+- path: static/j
+  rel: static
