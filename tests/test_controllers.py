@@ -1,28 +1,15 @@
-from HTMLParser import HTMLParseError
-from unittest import TestCase
 from webtest import TestApp
 
+from base import BaseTestCase
 
-class TestBase(TestCase):
+
+class TestBase(BaseTestCase):
+
     def setUp(self):
-        # this must be done later to avoid a NoseGAE import bug (their issue #32)
-        from website import application
-        self.app = TestApp(application())
-
-    def tearDown(self):
-        pass
-
-    def minify(self, response):
-        # importing this outside of the function somehow makes it take over and try to minify everything
-        from lib.gae_html.htmlmin import HTMLMinifier
-        result = True
-        minifier = HTMLMinifier()
-        try:
-            minifier.feed(str(response))
-        except HTMLParseError:
-            result = False
-        minifier.close()
-        return result
+        super(TestBase, self).setUp()
+        # this must be imported after the above setup in order for the stubs to work
+        from website import app
+        self.app = TestApp(app)
 
 
 class TestError(TestBase):
@@ -37,7 +24,6 @@ class TestIndex(TestBase):
     def test_index(self):
         response = self.app.get('/')
         assert '<h2>Index Page</h2>' in response
-        assert self.minify(response)
 
 
 class TestSitemap(TestBase):
@@ -45,7 +31,6 @@ class TestSitemap(TestBase):
     def test_sitemap(self):
         response = self.app.get('/sitemap.xml')
         assert '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' in response
-        assert self.minify(response)
 
 
 class TestStatic(TestBase):
@@ -56,14 +41,6 @@ class TestStatic(TestBase):
         for page in pages:
             response = self.app.get(page)
             assert "<h2>" + pages[page] + "</h2>" in response, pages[page] + " not found"
-            assert self.minify(response), pages[page] + " couldn't minify"
-
-
-class TestTasks(TestBase):
-
-    def test_tasks(self):
-        response = self.app.get('/task/sessions')
-        assert "OK" in response
 
 
 class TestAdmin(TestBase):
@@ -75,4 +52,3 @@ class TestAdmin(TestBase):
         # test clearing memcache out
         response = self.app.post('/admin', {"memcache": "1"})
         assert response.status_int == 302
-

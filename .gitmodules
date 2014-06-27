@@ -4,12 +4,6 @@
 [submodule "lib/gae_html"]
 	path = lib/gae_html
 	url = git@github.com:bdoms/gae_html.git
-[submodule "lib/nose"]
-	path = lib/nose
-	url = https://github.com/obeattie/python-nose.git
 [submodule "lib/webtest"]
 	path = lib/webtest
-	url = https://github.com/dound/webtest.git
-[submodule "lib/nosegae"]
-	path = lib/nosegae
-	url = git@github.com:bdoms/nose-gae.git
+	url = https://github.com/Pylons/webtest.git

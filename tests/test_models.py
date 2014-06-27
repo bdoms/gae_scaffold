@@ -1,15 +1,10 @@
-from unittest import TestCase
+
+from base import BaseTestCase
 
 import model
 
 
-class TestModelFunctions(TestCase):
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
+class TestModelFunctions(BaseTestCase):
 
     def test_example(self):
         pass
