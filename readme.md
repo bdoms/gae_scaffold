@@ -48,7 +48,7 @@ git remote add origin http://path.to.you.server/project
 
 ### Mandatory Modifications
 
- * Generate the `secret_key` variable in `website.py` for session security
+ * Generate the `secret_key` variable in `website.py` and the `*_SALTS` in `config/constants.py` for security
  * Replace `your-app-id` in `app.yaml` to upload the application
  * Replace `YOU@YOUR_DOMAIN.com` in `templates/terms.html` for DMCA compliance
  * A sample Terms of Service and Privacy Policy have been provided as examples, but you are solely responsible for their content and how they apply to your site

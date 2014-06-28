@@ -1,12 +1,27 @@
+from hashlib import sha512
+
 from google.appengine.api import memcache
 from google.appengine.ext import ndb
 
+from config.constants import AUTH_SALT, PASSWORD_SALT
+
 
 class User(ndb.Model):
-  first_name = ndb.StringProperty(required=True)
-  last_name = ndb.StringProperty(required=True)
-  is_admin = ndb.BooleanProperty(default=False)
-  created_date = ndb.DateTimeProperty(auto_now_add=True)
+    first_name = ndb.StringProperty(required=True)
+    last_name = ndb.StringProperty(required=True)
+    email = ndb.StringProperty(required=True)
+    auth_pepper = ndb.StringProperty(required=True)
+    password_pepper = ndb.StringProperty(required=True)
+    hashed_password = ndb.StringProperty(required=True)
+    is_admin = ndb.BooleanProperty(default=False)
+    created_date = ndb.DateTimeProperty(auto_now_add=True)
+
+    @classmethod
+    def hashPassword(cls, password, pepper):
+        return sha512(password.encode('utf8') + PASSWORD_SALT + pepper.encode('utf8')).hexdigest()
+
+    def getAuth(self, ip_address):
+        return sha512(self.key.urlsafe() + ip_address + AUTH_SALT + self.auth_pepper.encode('utf8')).hexdigest()
 
 
 # model helper functions

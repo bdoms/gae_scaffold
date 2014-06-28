@@ -32,7 +32,21 @@
     </header>
 
     <nav>
-
+        <ul>
+            {% if user %}
+                {% if is_dev %}
+                    <li><a href="/dev">Dev</a></li>
+                {% endif %}
+                {% if is_admin %}
+                    <li><a href="/admin">Admin</a></li>
+                {% endif %}
+                <li><a href="/home">Home</a></li>
+                <li><a href="/logout">Log Out</a></li>
+            {% else %}
+                <li><a href="/signup">Sign Up</a></li>
+                <li><a href="/login">Log In</a></li>
+            {% endif %}
+        </ul>
     </nav>
 
     <section>
@@ -46,9 +60,6 @@
 
     <footer>
         <ul>
-            {% if is_admin %}
-                <li><a href="/admin">Admin</a></li>
-            {% endif %}
             <li><a href="/terms">Terms of Service</a></li>
             <li><a href="/privacy">Privacy Policy</a></li>
         </ul>

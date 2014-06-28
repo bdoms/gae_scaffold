@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Log In</h2>
+
+<form action="" method="post">
+    {% if errors.get('match') %}
+        <p class="error">Email and password do not match. Please try again.</p>
+    {% endif %}
+
+    <p>
+        <label for="email">Email</label>
+        <input type="email" name="email" id="email" required value="{{form.get('email', '')}}" />
+        {% if errors.get('email') %}
+            <span class="error">Please enter a valid first name.</span>
+        {% endif %}
+    </p>
+    <p>
+        <label for="password">Password</label>
+        <input type="password" name="password" id="password" required />
+        {% if errors.get('password') %}
+            <span class="error">Please enter a valid password.</span>
+        {% endif %}
+    </p>
+    <input type="submit" value="Log In" />
+</form>
+
+{% endblock %}

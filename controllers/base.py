@@ -3,10 +3,11 @@
 # python imports
 import json
 import logging
-import sys
+import os
 
 # app engine api imports
 from google.appengine.api import memcache, users
+from google.appengine.ext import ndb
 
 # app engine included libraries imports
 import jinja2
@@ -15,13 +16,11 @@ from webapp2_extras import sessions
 
 # local imports
 import helpers
-from config.constants import TEMPLATES_PATH, LIB_PATH
-
-# add lib to the path
-sys.path.append(LIB_PATH)
+import model
+from config.constants import TEMPLATES_PATH
 
 # lib imports
-from gae_html import cacheHTML, renderIfCached
+from lib.gae_html import cacheHTML, renderIfCached
 
 
 class BaseController(webapp2.RequestHandler):
@@ -70,14 +69,17 @@ class BaseController(webapp2.RequestHandler):
         template = self.jinja_env.get_template(filename)
         # add some standard variables
         kwargs["h"] = helpers
-        kwargs["user"] = self.getUser()
-        kwargs["is_admin"] = users.is_current_user_admin()
+        kwargs["user"] = user = self.getUser()
+        kwargs["is_admin"] = user and user.is_admin
+        kwargs["is_dev"] = users.is_current_user_admin()
+        kwargs["form"] = self.session.pop("form", {})
+        kwargs["errors"] = self.session.pop("errors", {})
         if hasattr(self, "flash"):
             kwargs["flash"] = self.flash
         return template.render(kwargs)
 
-    def render(self, html):
-        self.response.out.write(html)
+    def render(self, data):
+        self.response.out.write(data)
 
     def renderTemplate(self, filename, **kwargs):
         self.render(self.compileTemplate(filename, **kwargs))
@@ -89,7 +91,7 @@ class BaseController(webapp2.RequestHandler):
 
     def renderJSON(self, data):
         self.response.headers['Content-Type'] = "application/json"
-        self.response.out.write(json.dumps(data))
+        self.render(json.dumps(data))
 
     # this overrides the base class for handling things like 500 errors
     def handle_exception(self, exception, debug):
@@ -123,10 +125,48 @@ class BaseController(webapp2.RequestHandler):
         user = None
         if hasattr(self, "user"):
             user = self.user
-        else:
-            user = users.get_current_user()
-            self.user = user
+        elif 'user_key' in self.session:
+            str_key = self.session['user_key']
+            user = None #memcache.get(str_key)
+            if not user:
+                try:
+                    user_key = ndb.Key(urlsafe=str_key)
+                except:
+                    pass
+                else:
+                    user = user_key.get()
+                    memcache.add(str_key, str_key)
+
+            ip = self.request.remote_addr or os.environ.get("REMOTE_ADDR")
+            if not user or self.session.get("user_auth") != user.getAuth(ip):
+                user = None
+                del self.session['user_key']
         return user
+
+
+def withUser(action):
+    def decorate(*args,  **kwargs):
+        controller = args[0]
+        user = controller.getUser()
+        if user:
+            controller.user = user
+            return action(*args, **kwargs)
+        else:
+            url = "/login"
+            return controller.redirect(url)
+    return decorate
+
+
+def withoutUser(action):
+    def decorate(*args,  **kwargs):
+        controller = args[0]
+        user = controller.getUser()
+        if not user:
+            return action(*args, **kwargs)
+        else:
+            url = "/home"
+            return controller.redirect(url)
+    return decorate
 
 
 def removeSlash(action):

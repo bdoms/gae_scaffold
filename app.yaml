@@ -29,11 +29,7 @@ handlers:
   static_files: static/humans.txt
   upload: static/humans.txt
 
-- url: /admin.*
-  script: website.app
-  login: admin
-
-- url: /task.*
+- url: /dev.*
   script: website.app
   login: admin
 

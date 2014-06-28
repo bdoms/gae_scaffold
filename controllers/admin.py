@@ -1,21 +1,15 @@
-from google.appengine.api import users, memcache
-from base import BaseController
 
-LOGOUT_URL = users.create_logout_url("/")
+from base import BaseController, withUser
 
 
 class AdminController(BaseController):
     """ handles request for the admin page """
 
+    @withUser
+    def before(self):
+        if not self.user.is_admin:
+            return self.renderError(403)
+
     def get(self):
 
-        self.renderTemplate('admin/index.html', logout_url=LOGOUT_URL)
-
-    def post(self):
-
-        if self.request.get("memcache"):
-            # clear memcache
-            memcache.flush_all()
-
-        self.redirect('/admin')
-
+        self.renderTemplate('admin/index.html')

@@ -1,0 +1,20 @@
+{% extends "/base.html" %}
+{% block content %}
+
+<h2>Dev</h2>
+
+<p><a href="{{logout_url}}">Log Out</a></p>
+
+<form action="" method="post">
+    <input type="hidden" name="make_admin" value="1"/>
+    Email:
+    <input type="text" name="email" />
+    <input type="submit" value="Make User an Admin"/>
+</form>
+
+<form action="" method="post">
+    <input type="hidden" name="memcache" value="1"/>
+    <input type="submit" value="Clear Memcache"/>
+</form>
+
+{% endblock %}

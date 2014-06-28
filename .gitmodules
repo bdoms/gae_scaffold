@@ -7,3 +7,6 @@
 [submodule "lib/webtest"]
 	path = lib/webtest
 	url = https://github.com/Pylons/webtest.git
+[submodule "lib/gae_validators"]
+	path = lib/gae_validators
+	url = git@github.com:bdoms/gae_validators.git

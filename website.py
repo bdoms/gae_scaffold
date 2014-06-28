@@ -3,13 +3,18 @@
 import webapp2
 
 # URL routes
-from controllers import admin, error, index, sitemap, static
+from controllers import admin, dev, error, home, index, sitemap, static, user
 
 ROUTES = [('/', index.IndexController),
+          ('/home', home.HomeController),
+          ('/signup', user.SignupController),
+          ('/login', user.LoginController),
+          ('/logout', user.LogoutController),
           ('/terms', static.StaticController),
           ('/privacy', static.StaticController),
           ('/sitemap.xml', sitemap.SitemapController),
           ('/admin', admin.AdminController),
+          ('/dev', dev.DevController),
           ('/(.*)', error.ErrorController)
          ]
 
