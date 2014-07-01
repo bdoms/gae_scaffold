@@ -1,12 +1,12 @@
 [submodule "lib/gae_deploy"]
 	path = lib/gae_deploy
-	url = git@github.com:bdoms/gae_deploy.git
+	url = https://github.com/bdoms/gae_deploy.git
 [submodule "lib/gae_html"]
 	path = lib/gae_html
-	url = git@github.com:bdoms/gae_html.git
+	url = https://github.com/bdoms/gae_html.git
 [submodule "lib/webtest"]
 	path = lib/webtest
 	url = https://github.com/Pylons/webtest.git
 [submodule "lib/gae_validators"]
 	path = lib/gae_validators
-	url = git@github.com:bdoms/gae_validators.git
+	url = https://github.com/bdoms/gae_validators.git
