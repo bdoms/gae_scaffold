@@ -56,8 +56,8 @@ def nl2br(string):
 
 ORDINALS = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"]
 def ordinal(i):
-    if i < len(ORDINALS):
-        return ORDINALS[i]
+    if i <= len(ORDINALS):
+        return ORDINALS[i - 1]
     else:
         s = str(i)
         last_two = s[-2:]
@@ -77,6 +77,8 @@ def ordinal(i):
 def money(i):
     # display an int in cents properly formatted as dollars
     s = str(i)
+    while len(s) < 3:
+        s = "0" + s
     return "$" + int_comma(s[:-2]) + "." + s[-2:]   
 
 def int_comma(i):

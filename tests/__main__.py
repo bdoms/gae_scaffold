@@ -3,6 +3,8 @@ import os
 import sys
 import unittest
 
+os.environ["SERVER_SOFTWARE"] = "DevelopmentTesting"
+
 test_path = sys.argv[0]
 sdk_path = sys.argv[1]
 
