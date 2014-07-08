@@ -51,14 +51,13 @@ class SignupController(BaseController):
             self.session["errors"] = errors
             self.redirect("/signup")
         else:
-            auth_pepper = os.urandom(64).encode("base64")
-            password_pepper = os.urandom(64).encode("base64")
-            hashed_password = model.User.hashPassword(password, password_pepper)
-            user = model.User(first_name=first_name, last_name=last_name, email=email, auth_pepper=auth_pepper,
-                password_pepper=password_pepper, hashed_password=hashed_password)
+            password_salt = os.urandom(64).encode("base64")
+            hashed_password = model.User.hashPassword(password, password_salt)
+            user = model.User(first_name=first_name, last_name=last_name, email=email,
+                password_salt=password_salt, hashed_password=hashed_password)
             user_key = user.put()
             self.session["user_key"] = user_key.urlsafe()
-            self.session["user_auth"] = user.getAuth(self.request.remote_addr or os.environ["REMOTE_ADDR"])
+            self.session["user_auth"] = user.getAuth()
             self.redirect("/home")
 
 
@@ -90,7 +89,7 @@ class LoginController(BaseController):
         if not errors:
             user = model.User.query(model.User.email == email).get()
             if user:
-                hashed_password = model.User.hashPassword(password, user.password_pepper)
+                hashed_password = model.User.hashPassword(password, user.password_salt)
                 if hashed_password != user.hashed_password:
                     errors["match"] = True
             else:
@@ -101,9 +100,8 @@ class LoginController(BaseController):
             self.session["errors"] = errors
             self.redirect("/login")
         else:
-            str_key = user.key.urlsafe()
-            self.session["user_key"] = str_key
-            self.session["user_auth"] = user.getAuth(self.request.remote_addr or os.environ["REMOTE_ADDR"])
+            self.session["user_key"] = user.key.urlsafe()
+            self.session["user_auth"] = user.getAuth()
             self.redirect("/home")
 
 

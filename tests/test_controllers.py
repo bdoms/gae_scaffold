@@ -6,8 +6,6 @@ from base import BaseTestCase
 
 import model
 
-os.environ["REMOTE_ADDR"] = "127.0.0.1"
-
 UCHAR = u"\u03B4" # lowercase delta
 
 
@@ -54,13 +52,12 @@ class TestBase(BaseTestCase):
         email = email or "test" + UCHAR + "@example.com"
         password = "Test password" + UCHAR
 
-        auth_pepper = os.urandom(64).encode("base64")
-        password_pepper = os.urandom(64).encode("base64")
-        hashed_password = model.User.hashPassword(password, password_pepper)
+        password_salt = os.urandom(64).encode("base64")
+        hashed_password = model.User.hashPassword(password, password_salt)
         other_user = model.User.query(model.User.email == email).get()
         assert not other_user, "That email address is already in use."
-        user = model.User(first_name=first_name, last_name=last_name, email=email, auth_pepper=auth_pepper,
-            password_pepper=password_pepper, hashed_password=hashed_password, is_admin=is_admin)
+        user = model.User(first_name=first_name, last_name=last_name, email=email,
+            password_salt=password_salt, hashed_password=hashed_password, is_admin=is_admin)
         user.put()
         user.password = password # for convenience with signing in during testing
 

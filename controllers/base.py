@@ -78,11 +78,8 @@ class BaseController(webapp2.RequestHandler):
             kwargs["flash"] = self.flash
         return template.render(kwargs)
 
-    def render(self, data):
-        self.response.out.write(data)
-
     def renderTemplate(self, filename, **kwargs):
-        self.render(self.compileTemplate(filename, **kwargs))
+        self.response.out.write(self.compileTemplate(filename, **kwargs))
 
     def renderError(self, status_int, stacktrace=None):
         self.response.set_status(status_int)
@@ -91,7 +88,7 @@ class BaseController(webapp2.RequestHandler):
 
     def renderJSON(self, data):
         self.response.headers['Content-Type'] = "application/json"
-        self.render(json.dumps(data))
+        self.response.out.write(json.dumps(data, ensure_ascii=False, encoding='utf-8'))
 
     # this overrides the base class for handling things like 500 errors
     def handle_exception(self, exception, debug):
@@ -127,7 +124,7 @@ class BaseController(webapp2.RequestHandler):
             user = self.user
         elif 'user_key' in self.session:
             str_key = self.session['user_key']
-            user = None #memcache.get(str_key)
+            user = memcache.get(str_key)
             if not user:
                 try:
                     user_key = ndb.Key(urlsafe=str_key)
@@ -135,10 +132,10 @@ class BaseController(webapp2.RequestHandler):
                     pass
                 else:
                     user = user_key.get()
-                    memcache.add(str_key, str_key)
+                    memcache.add(str_key, user)
 
-            ip = self.request.remote_addr or os.environ.get("REMOTE_ADDR")
-            if not user or self.session.get("user_auth") != user.getAuth(ip):
+            user_auth = self.session.get("user_auth")
+            if not user or not user_auth or user_auth != user.getAuth():
                 user = None
                 del self.session['user_key']
         return user

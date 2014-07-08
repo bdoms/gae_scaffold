@@ -22,6 +22,15 @@ ROUTES = [('/', index.IndexController),
 config = {}
 config['webapp2_extras.sessions'] = {
     'secret_key': 'replace this with the output from os.urandom(64)',
+    'cookie_args': {
+        # uncomment this line to force cookies to only be sent over SSL
+        #'secure': True,
+
+        # this can prevent XSS attacks by not letting javascript access the cookie
+        # (note that some older browsers do not have this restriction implemented)
+        # disable if you need to access cookies from javascript (not recommended)
+        'httponly': True
+    }
 }
 
 # make sure debug is False for production
