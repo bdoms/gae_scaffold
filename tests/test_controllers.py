@@ -1,6 +1,11 @@
+import logging
 import os
 
+import jinja2
+
 from webtest import TestApp
+
+from controllers import base as controller_base
 
 from base import BaseTestCase, UCHAR
 
@@ -43,41 +48,154 @@ class BaseTestController(BaseTestCase):
 
 class TestBase(BaseTestController):
 
+    def setUp(self):
+        super(TestBase, self).setUp()
+        
+        # we're calling straight into the base controller without a route so it needs some mock objects
+        class mockRoute(object):
+            handler_method = "get"
+        class mockRequest(self.app.app.request_class):
+            app = self.app.app
+            path = "/test-path"
+            query_string = "test=query"
+            route_args = {}
+            route_kwargs = {}
+            route = mockRoute()
+
+        self.controller = controller_base.BaseController()
+        self.controller.initialize(mockRequest({}), self.app.app.response_class())
+
+    def mockSessions(self):
+        # this is used by tests that want to bypass needing to perform session-dependent actions within a request
+        class mockStore(object):
+            def get_session(self): return {}
+        self.controller.session_store = mockStore()
+
     def test_dispatch(self):
-        pass
+        
+        def before(): self.call_list.append("before")
+        def get(): self.call_list.append("get")
+        def after(): self.call_list.append("after")
+        self.controller.before = before
+        self.controller.get = get
+        self.controller.after = after
+
+        # in a normal request before, the action, and after should all be called in order
+        self.call_list = []
+        self.controller.dispatch()
+        assert self.call_list == ["before", "get", "after"]
+
+        # if there is an error or redirect in before then the action and after should not be called
+        self.call_list = []
+        self.controller.response.set_status(500)
+        self.controller.dispatch()
+        assert self.call_list == ["before"]
 
     def test_session(self):
-        pass
+        # sessions can only be used during a request, so we create a mock one to save something
+        def get(): self.controller.session["test key"] = "test value" + UCHAR
+        self.controller.get = get
+        self.controller.dispatch()
+        assert self.controller.session.get("test key") == "test value" + UCHAR
 
     def test_flash(self):
-        pass
+        self.mockSessions()
+        self.controller.flash("info", "test flash" + UCHAR)
+        assert self.controller.session.get("flash") == {"level": "info", "message": "test flash" + UCHAR}
 
     def test_cacheAndRenderTemplate(self):
-        pass
+        self.mockSessions()
+        # using a template object directly means that we don't need to use the file system
+        template = jinja2.Template("test cache and render template" + UCHAR)
+        self.controller.cacheAndRenderTemplate(template)
+        assert "test cache and render template" + UCHAR in self.controller.response.unicode_body
 
     def test_compileTemplate(self):
-        pass
+        self.mockSessions()
+        template = jinja2.Template("test compile template" + UCHAR)
+        result = self.controller.compileTemplate(template)
+        assert "test compile template" + UCHAR in result
 
     def test_renderTemplate(self):
-        pass
+        self.mockSessions()
+        template = jinja2.Template("test render template" + UCHAR)
+        self.controller.renderTemplate(template)
+        assert self.controller.response.headers['Content-Type'] == "text/html; charset=utf-8"
+        assert "test render template" + UCHAR in self.controller.response.unicode_body
 
     def test_renderError(self):
-        pass
+        self.mockSessions()
+        self.controller.renderError(500)
+        assert "Error 500:" in self.controller.response.body
 
     def test_renderJSON(self):
-        pass
+        self.controller.renderJSON({"test key": "test value" + UCHAR})
+        assert self.controller.response.headers['Content-Type'] == "application/json; charset=utf-8"
+        assert self.controller.response.unicode_body == '{"test key": "test value' + UCHAR + '"}'
 
     def test_handle_exception(self):
-        pass
+        self.mockSessions()
+        # temporarily disable exception logging for this test to avoid messy printouts
+        logging.disable(logging.CRITICAL)
+        self.controller.handle_exception("test exception", False)
+        logging.disable(logging.NOTSET)
+        assert "Error 500:" in self.controller.response.body
 
     def test_cache(self):
-        pass
+        self.executed = 0
+        def testFunction():
+            self.executed += 1
+            return "test value"
+        assert self.executed == 0
+
+        result = self.controller.cache("test key", testFunction)
+        assert result == "test value"
+        assert self.executed == 1
+
+        # the value should now be cached, so the function should not be executed again
+        result = self.controller.cache("test key", testFunction)
+        assert self.executed == 1
 
     def test_uncache(self):
-        pass
+        from google.appengine.api import memcache
+
+        # confirm the key exists when it is added
+        memcache.set("test key", "test value")
+        assert memcache.get("test key") == "test value"
+
+        # and that it's gone when removed
+        self.controller.uncache("test key")
+        assert memcache.get("test key") is None
 
     def test_user(self):
-        pass
+        self.mockSessions()
+        user = self.createUser()
+
+        # to begin with the user should return nothing
+        assert self.controller.user is None
+
+        # if an invalid user key is added it should still return none without errors
+        self.controller.session["user_key"] = "doesn't exist"
+
+        # because of the way cached properties work we have to do a little hack to re-evaluate
+        self.controller.user = controller_base.BaseController.user.func(self.controller)
+
+        assert self.controller.user is None
+
+        # if a valid user key is added but without valid authorization it should still return none
+        self.controller.session["user_key"] = user.key.urlsafe()
+        self.controller.session["user_auth"] = "bad auth"
+        self.controller.user = controller_base.BaseController.user.func(self.controller)
+
+        assert self.controller.user is None
+
+        # finally if both valid keys are added to the session it should return the user object
+        self.controller.session["user_key"] = user.key.urlsafe()
+        self.controller.session["user_auth"] = user.getAuth()
+        self.controller.user = controller_base.BaseController.user.func(self.controller)
+        
+        assert self.controller.user is not None
+        assert self.controller.user.key == user.key
 
 
 class TestForm(BaseTestController):

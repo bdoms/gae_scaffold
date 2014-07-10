@@ -41,11 +41,11 @@ class BaseController(webapp2.RequestHandler):
         if self.response.status_int == 200:
             webapp2.RequestHandler.dispatch(self)
         
-        if hasattr(self, "after"):
-            try:
-                self.after()
-            except Exception as e:
-                self.handle_exception(e, False)
+            if hasattr(self, "after"):
+                try:
+                    self.after()
+                except Exception as e:
+                    self.handle_exception(e, False)
 
         # save all sessions
         self.session_store.save_sessions(self.response)
@@ -115,10 +115,9 @@ class BaseController(webapp2.RequestHandler):
 
     def cache(self, key, function, expires=86400):
         value = memcache.get(key)
-        if value is None or helpers.debug():
+        if value is None:
             value = function()
-            if not users.is_current_user_admin():
-                memcache.add(key, value, expires)
+            memcache.add(key, value, expires)
         return value
 
     def uncache(self, key, seconds=0):
