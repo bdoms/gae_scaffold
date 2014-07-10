@@ -51,8 +51,8 @@
 
     <section>
         {% if flash %}
-            <div class="flash">
-                <p>{{flash}}</p>
+            <div class="flash {{flash['level']}}">
+                <p>{{flash['message']}}</p>
             </div>
         {% endif %}
         {% block content %}{% endblock %}

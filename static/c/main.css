@@ -1,2 +1,6 @@
 
+.flash.info {border: 1px solid blue; color: blue;}
+.flash.success {border: 1px solid green; color: green;}
+.flash.error {border: 1px solid red;}
+
 .error {color: red;}

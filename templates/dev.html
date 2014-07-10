@@ -7,9 +7,17 @@
 
 <form action="" method="post">
     <input type="hidden" name="make_admin" value="1"/>
-    Email:
-    <input type="text" name="email" />
+
+    {% if errors.get('exists') %}
+        <p class="error">There is no user associated with that email address.</p>
+    {% endif %}
+
+    <label for="email">Email</label>
+    <input type="email" name="email" id="email" required value="{{form.get('email', '')}}"/>
     <input type="submit" value="Make User an Admin"/>
+    {% if errors.get('email') %}
+        <span class="error">Please enter a valid email.</span>
+    {% endif %}
 </form>
 
 <form action="" method="post">

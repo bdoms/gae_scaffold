@@ -1,13 +1,28 @@
 import os
 
-from base import BaseController, withUser, withoutUser
+from base import BaseController, FormController, withUser, withoutUser
 
 import model
 
 from lib.gae_validators import validateRequiredString, validateEmail
 
 
-class SignupController(BaseController):
+class BaseLoginController(FormController):
+
+    def login(self, user):
+        self.session["user_key"] = user.key.urlsafe()
+        self.session["user_auth"] = user.getAuth()
+        self.redirect("/home")
+
+
+class SignupController(BaseLoginController):
+
+    FIELDS = {
+        "first_name": validateRequiredString,
+        "last_name": validateRequiredString,
+        "email": validateEmail,
+        "password": validateRequiredString
+    }
 
     @withoutUser
     def get(self):
@@ -17,51 +32,30 @@ class SignupController(BaseController):
     @withoutUser
     def post(self):
         
-        first_name = self.request.get("first_name")
-        last_name = self.request.get("last_name")
-        email = self.request.get("email")
-        password = self.request.get("password")
+        form_data, errors, valid_data = self.validate()
 
-        form_data = {"first_name": first_name, "last_name": last_name, "email": email}
-        errors = {}
-
-        valid, first_name = validateRequiredString(first_name)
-        if not valid:
-            errors["first_name"] = True
-
-        valid, last_name = validateRequiredString(last_name)
-        if not valid:
-            errors["last_name"] = True
-
-        valid, email = validateEmail(email)
-        if not valid:
-            errors["email"] = True
-
-        valid, password = validateRequiredString(password)
-        if not valid:
-            errors["password"] = True
-
+        # extra validation to make sure that email address isn't already in use
         if not errors:
-            user = model.User.query(model.User.email == email).get()
+            user = model.User.query(model.User.email == valid_data["email"]).get()
             if user:
                 errors["exists"] = True
 
         if errors:
-            self.session["form"] = form_data
-            self.session["errors"] = errors
-            self.redirect("/signup")
+            del form_data["password"] # never send password back for security
+            self.redisplay(form_data, errors, "/signup")
         else:
             password_salt = os.urandom(64).encode("base64")
-            hashed_password = model.User.hashPassword(password, password_salt)
-            user = model.User(first_name=first_name, last_name=last_name, email=email,
-                password_salt=password_salt, hashed_password=hashed_password)
-            user_key = user.put()
-            self.session["user_key"] = user_key.urlsafe()
-            self.session["user_auth"] = user.getAuth()
-            self.redirect("/home")
+            hashed_password = model.User.hashPassword(valid_data["password"], password_salt)
+            del valid_data["password"]
+            user = model.User(password_salt=password_salt, hashed_password=hashed_password, **valid_data)
+            user.put()
+            self.flash("success", "Thank you for signing up!")
+            self.login(user)
 
 
-class LoginController(BaseController):
+class LoginController(BaseLoginController):
+
+    FIELDS = {"email": validateEmail, "password": validateRequiredString}
 
     @withoutUser
     def get(self):
@@ -71,38 +65,26 @@ class LoginController(BaseController):
     @withoutUser
     def post(self):
         
-        email = self.request.get("email")
-        password = self.request.get("password")
+        form_data, errors, valid_data = self.validate()
 
-        form_data = {"email": email}
-        errors = {}
-
-        valid, email = validateEmail(email)
-        if not valid:
-            errors["email"] = True
-
-        valid, password = validateRequiredString(password)
-        if not valid:
-            errors["password"] = True
-
+        # check that the user exists and the password matches
         user = None
         if not errors:
-            user = model.User.query(model.User.email == email).get()
+            user = model.User.query(model.User.email == valid_data["email"]).get()
             if user:
-                hashed_password = model.User.hashPassword(password, user.password_salt)
+                hashed_password = model.User.hashPassword(valid_data["password"], user.password_salt)
                 if hashed_password != user.hashed_password:
+                    # note that to dissuade brute force attempts the error for not finding the user
+                    # and not matching the password should be the same
                     errors["match"] = True
             else:
                 errors["match"] = True
 
         if errors:
-            self.session["form"] = form_data
-            self.session["errors"] = errors
-            self.redirect("/login")
+            del form_data["password"] # never send password back for security
+            self.redisplay(form_data, errors, "/login")
         else:
-            self.session["user_key"] = user.key.urlsafe()
-            self.session["user_auth"] = user.getAuth()
-            self.redirect("/home")
+            self.login(user)
 
 
 class LogoutController(BaseController):
