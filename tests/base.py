@@ -1,5 +1,6 @@
 
 import base64
+import os
 import pickle
 import unittest
 
@@ -7,6 +8,10 @@ from google.appengine.ext import testbed
 from google.appengine.datastore import datastore_stub_util
 
 from config.constants import CURRENT_DIR
+
+import model
+
+UCHAR = u"\u03B4" # lowercase delta
 
 
 class BaseTestCase(unittest.TestCase):
@@ -47,3 +52,25 @@ class BaseTestCase(unittest.TestCase):
         for task in tasks:
             response = self.post(task['url'], task['params'])
             self.assertOK(response)
+
+    # fixtures
+    def createUser(self, email=None, is_admin=False, **kwargs):
+        first_name = "Test first name" + UCHAR
+        last_name = "Test last name" + UCHAR
+        email = email or "test" + UCHAR + "@example.com"
+        password = "Test password" + UCHAR
+
+        password_salt = os.urandom(64).encode("base64")
+        hashed_password = model.User.hashPassword(password, password_salt)
+        other_user = model.User.query(model.User.email == email).get()
+        assert not other_user, "That email address is already in use."
+        user = model.User(first_name=first_name, last_name=last_name, email=email,
+            password_salt=password_salt, hashed_password=hashed_password, is_admin=is_admin, **kwargs)
+        user.put()
+        user.password = password # for convenience with signing in during testing
+
+        if email == "test" + UCHAR + "@example.com":
+            # this is the default, so add an easy reference to it
+            self.user = user
+
+        return user

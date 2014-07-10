@@ -2,17 +2,13 @@ import os
 
 from webtest import TestApp
 
-from base import BaseTestCase
-
-import model
-
-UCHAR = u"\u03B4" # lowercase delta
+from base import BaseTestCase, UCHAR
 
 
-class TestBase(BaseTestCase):
+class BaseTestController(BaseTestCase):
 
     def setUp(self):
-        super(TestBase, self).setUp()
+        super(BaseTestController, self).setUp()
         # this must be imported after the above setup in order for the stubs to work
         from website import app
         self.app = TestApp(app)
@@ -42,47 +38,87 @@ class TestBase(BaseTestCase):
 
     def logout(self):
         response = self.app.get('/logout')
-        #os.environ['HTTP_COOKIE'] = ''
         return response
 
-    # fixtures
-    def createUser(self, email=None, is_admin=False):
-        first_name = "Test first name" + UCHAR
-        last_name = "Test last name" + UCHAR
-        email = email or "test" + UCHAR + "@example.com"
-        password = "Test password" + UCHAR
 
-        password_salt = os.urandom(64).encode("base64")
-        hashed_password = model.User.hashPassword(password, password_salt)
-        other_user = model.User.query(model.User.email == email).get()
-        assert not other_user, "That email address is already in use."
-        user = model.User(first_name=first_name, last_name=last_name, email=email,
-            password_salt=password_salt, hashed_password=hashed_password, is_admin=is_admin)
-        user.put()
-        user.password = password # for convenience with signing in during testing
+class TestBase(BaseTestController):
 
-        if email == "test" + UCHAR + "@example.com":
-            # this is the default, so add an easy reference to it
-            self.user = user
+    def test_dispatch(self):
+        pass
 
-        return user
+    def test_session(self):
+        pass
+
+    def test_flash(self):
+        pass
+
+    def test_cacheAndRenderTemplate(self):
+        pass
+
+    def test_compileTemplate(self):
+        pass
+
+    def test_renderTemplate(self):
+        pass
+
+    def test_renderError(self):
+        pass
+
+    def test_renderJSON(self):
+        pass
+
+    def test_handle_exception(self):
+        pass
+
+    def test_cache(self):
+        pass
+
+    def test_uncache(self):
+        pass
+
+    def test_user(self):
+        pass
 
 
-class TestError(TestBase):
+class TestForm(BaseTestController):
+
+    def test_validate(self):
+        pass
+
+    def test_redisplay(self):
+        pass
+
+
+class TestValidators(BaseTestController):
+
+    def test_withUser(self):
+        pass
+
+    def test_withoutUser(self):
+        pass
+
+    def test_removeSlash(self):
+        pass
+
+    def test_validateReferer(self):
+        pass
+
+
+class TestError(BaseTestController):
 
     def test_error(self):
         # this just covers any URL not handled by something else - always produces 404
         assert self.app.get('/nothing-to-see-here', status=404)
 
 
-class TestIndex(TestBase):
+class TestIndex(BaseTestController):
 
     def test_index(self):
         response = self.app.get('/')
         assert '<h2>Index Page</h2>' in response
 
 
-class TestHome(TestBase):
+class TestHome(BaseTestController):
 
     def setUp(self):
         super(TestHome, self).setUp()
@@ -94,14 +130,14 @@ class TestHome(TestBase):
         assert '<h2>Logged In Home Page</h2>' in response
 
 
-class TestSitemap(TestBase):
+class TestSitemap(BaseTestController):
 
     def test_sitemap(self):
         response = self.app.get('/sitemap.xml')
         assert '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' in response
 
 
-class TestStatic(TestBase):
+class TestStatic(BaseTestController):
 
     def test_static(self):
         # loop through and test every known static page
@@ -111,7 +147,7 @@ class TestStatic(TestBase):
             assert "<h2>" + pages[page] + "</h2>" in response, pages[page] + " not found"
 
 
-class TestUser(TestBase):
+class TestUser(BaseTestController):
 
     def setUp(self):
         super(TestUser, self).setUp()
@@ -147,7 +183,7 @@ class TestUser(TestBase):
         assert '<h2>Index Page</h2>' in response
 
 
-class TestAdmin(TestBase):
+class TestAdmin(BaseTestController):
 
     def setUp(self):
         super(TestAdmin, self).setUp()
@@ -159,7 +195,7 @@ class TestAdmin(TestBase):
         assert '<h2>Admin</h2>' in response
 
 
-class TestDev(TestBase):
+class TestDev(BaseTestController):
 
     def test_dev(self):
         response = self.app.get('/dev')
