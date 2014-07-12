@@ -15,6 +15,7 @@ ROUTES = [('/', index.IndexController),
           ('/sitemap.xml', sitemap.SitemapController),
           ('/admin', admin.AdminController),
           ('/dev', dev.DevController),
+          #('/errors/(.*)', static.StaticController), # uncomment to test static error pages
           ('/(.*)', error.ErrorController)
          ]
 
