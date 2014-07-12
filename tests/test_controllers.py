@@ -46,30 +46,39 @@ class BaseTestController(BaseTestCase):
         return response
 
 
-class TestBase(BaseTestController):
+class BaseMockController(BaseTestController):
+    """ abstract base class for tests that need request, response, and session mocking """
 
-    def setUp(self):
-        super(TestBase, self).setUp()
-        
-        # we're calling straight into the base controller without a route so it needs some mock objects
-        class mockRoute(object):
-            handler_method = "get"
-        class mockRequest(self.app.app.request_class):
+    def getMockRequest(self):
+        # calling straight into the controller without a route requires some mock objects to work
+        class MockRequest(self.app.app.request_class):
+            class MockRoute(object):
+                handler_method = "get"
             app = self.app.app
-            path = "/test-path"
+            path = url = "/test-path"
             query_string = "test=query"
-            route_args = {}
-            route_kwargs = {}
-            route = mockRoute()
-
-        self.controller = controller_base.BaseController()
-        self.controller.initialize(mockRequest({}), self.app.app.response_class())
+            headers = route_args = route_kwargs = {}
+            route = MockRoute()
+        return MockRequest({})
 
     def mockSessions(self):
         # this is used by tests that want to bypass needing to perform session-dependent actions within a request
-        class mockStore(object):
+        class MockSessionStore(object):
             def get_session(self): return {}
-        self.controller.session_store = mockStore()
+        self.controller.session_store = MockSessionStore()
+
+    def mockLogin(self):
+        self.controller.session["user_key"] = self.user.key.urlsafe()
+        self.controller.session["user_auth"] = self.user.getAuth()
+
+
+class TestBase(BaseMockController):
+
+    def setUp(self):
+        super(TestBase, self).setUp()
+
+        self.controller = controller_base.BaseController()
+        self.controller.initialize(self.getMockRequest(), self.app.app.response_class())
 
     def test_dispatch(self):
         
@@ -190,36 +199,128 @@ class TestBase(BaseTestController):
         assert self.controller.user is None
 
         # finally if both valid keys are added to the session it should return the user object
-        self.controller.session["user_key"] = user.key.urlsafe()
-        self.controller.session["user_auth"] = user.getAuth()
+        self.mockLogin()
         self.controller.user = controller_base.BaseController.user.func(self.controller)
         
         assert self.controller.user is not None
         assert self.controller.user.key == user.key
 
 
-class TestForm(BaseTestController):
+class TestForm(BaseMockController):
+
+    def setUp(self):
+        super(TestForm, self).setUp()
+
+        self.controller = controller_base.FormController()
+        self.controller.initialize(self.getMockRequest(), self.app.app.response_class())
 
     def test_validate(self):
-        pass
+        self.controller.request = {"valid_field": "value" + UCHAR, "invalid_field": "value" + UCHAR}
+        self.controller.FIELDS = {"valid_field": lambda x: (True, x + "valid"), "invalid_field": lambda x: (False, "")}
+        form_data, errors, valid_data = self.controller.validate()
+
+        assert form_data == self.controller.request
+        assert errors == {"invalid_field": True}
+        assert valid_data == {"valid_field": "value" + UCHAR + "valid"}
 
     def test_redisplay(self):
-        pass
+        self.mockSessions()
+
+        self.controller.redisplay("form_data", "errors", "/test-redirect-url")
+
+        assert self.controller.session.get("form_data") == "form_data"
+        assert self.controller.session.get("errors") == "errors"
+
+        assert self.controller.response.status_int == 302
+        assert "Location: /test-redirect-url" in str(self.controller.response.headers)
 
 
-class TestValidators(BaseTestController):
+class TestDecorators(BaseMockController):
+
+    def setUp(self):
+        super(TestDecorators, self).setUp()
+
+        self.controller = controller_base.BaseController()
+        self.controller.initialize(self.getMockRequest(), self.app.app.response_class())
 
     def test_withUser(self):
-        pass
+        self.mockSessions()
+        self.createUser()
+
+        action = lambda x: "action"
+        decorator = controller_base.withUser(action)
+
+        # without a user the action should not be performed and it should redirect
+        response = decorator(self.controller)
+        assert response != "action"
+        assert self.controller.response.status_int == 302
+        assert "Location: /login" in str(self.controller.response.headers)
+
+        # re-init to clear old response
+        self.controller.initialize(self.getMockRequest(), self.app.app.response_class())
+
+        # login user
+        self.mockLogin()
+        self.controller.user = controller_base.BaseController.user.func(self.controller)
+
+        # with a user the action should complete without a redirect
+        response = decorator(self.controller)
+        assert response == "action"
+        assert self.controller.response.status_int != 302
 
     def test_withoutUser(self):
-        pass
+        self.mockSessions()
+        self.createUser()
+
+        action = lambda x: "action"
+        decorator = controller_base.withoutUser(action)
+
+        # without a user the action should complete without a redirect
+        response = decorator(self.controller)
+        assert response == "action"
+        assert self.controller.response.status_int != 302
+
+        # with a user the action should not complete and it should redirect
+        self.mockLogin()
+        self.controller.user = controller_base.BaseController.user.func(self.controller)
+        response = decorator(self.controller)
+        assert response != "action"
+        assert self.controller.response.status_int == 302
+        assert "Location: /home" in str(self.controller.response.headers)
 
     def test_removeSlash(self):
-        pass
+        action = lambda x: "action"
+        decorator = controller_base.removeSlash(action)
+
+        # without a slash it should not redirect
+        self.controller.request.path = "/no-slash"
+        response = decorator(self.controller)
+        assert response == "action"
+        assert self.controller.response.status_int != 301
+
+        # with a slash it should
+        self.controller.request.path = "/with-slash/"
+        response = decorator(self.controller)
+        assert response != "action"
+        assert self.controller.response.status_int == 301
+        assert "Location: /with-slash" in str(self.controller.response.headers)
 
     def test_validateReferer(self):
-        pass
+        self.mockSessions()
+        action = lambda x: "action"
+        decorator = controller_base.validateReferer(action)
+
+        # with a valid referer the action should complete
+        self.controller.request.headers = {"referer": "http://valid", "host": "valid"}
+        response = decorator(self.controller)
+        assert response == "action"
+        assert self.controller.response.status_int != 400
+
+        # without a valid referer the request should not go through
+        self.controller.request.headers = {"referer": "invalid", "host": "valid"}
+        response = decorator(self.controller)
+        assert response != "action"
+        assert self.controller.response.status_int == 400
 
 
 class TestError(BaseTestController):

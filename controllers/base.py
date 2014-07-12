@@ -206,7 +206,7 @@ def validateReferer(action):
     def decorate(*args,  **kwargs):
         controller = args[0]
         referer = controller.request.headers.get("referer")
-        if not helpers.debug() and not referer.startswith("http://" + controller.request.headers.get("host")):
+        if not referer.startswith("http://" + controller.request.headers.get("host")):
             return controller.renderError(400)
         return action(*args, **kwargs)
     return decorate
