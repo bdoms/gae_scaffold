@@ -6,8 +6,8 @@ import logging
 import os
 
 # app engine api imports
-from google.appengine.api import memcache, users
-from google.appengine.ext import ndb
+from google.appengine.api import mail, memcache, users
+from google.appengine.ext import deferred
 
 # app engine included libraries imports
 import jinja2
@@ -17,7 +17,7 @@ from webapp2_extras import sessions
 # local imports
 import helpers
 import model
-from config.constants import TEMPLATES_PATH
+from config.constants import TEMPLATES_PATH, EMAIL_SENDER
 
 # lib imports
 from lib.gae_html import cacheHTML, renderIfCached
@@ -128,21 +128,29 @@ class BaseController(webapp2.RequestHandler):
         user = None
         if 'user_key' in self.session:
             str_key = self.session['user_key']
-            user = memcache.get(str_key)
-            if not user:
-                try:
-                    user_key = ndb.Key(urlsafe=str_key)
-                except:
-                    pass
-                else:
-                    user = user_key.get()
-                    memcache.add(str_key, user)
+            user = model.getByKey(str_key)
 
             user_auth = self.session.get("user_auth")
             if not user or not user_auth or user_auth != user.getAuth():
                 user = None
                 del self.session['user_key']
         return user
+
+    @classmethod
+    def sendEmail(cls, to, subject, html, reply_to=None):
+        body = helpers.strip_html(html)
+        if reply_to:
+            mail.send_mail(sender=EMAIL_SENDER, to=to, subject=subject, body=body, html=html, reply_to=reply_to)
+        else:
+            mail.send_mail(sender=EMAIL_SENDER, to=to, subject=subject, body=body, html=html)
+
+    def deferEmail(self, to, subject, filename, reply_to=None, **kwargs):
+        kwargs["host"] = self.request.host_url
+        if type(filename) == type(""):
+            filename = "emails/" + filename
+        template = self.jinja_env.get_template(filename)
+        html = template.render(kwargs)
+        deferred.defer(self.sendEmail, to, subject, html, reply_to=reply_to, _queue="mail")
 
 
 class FormController(BaseController):

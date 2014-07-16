@@ -56,6 +56,7 @@ class BaseMockController(BaseTestController):
                 handler_method = "get"
             app = self.app.app
             path = url = "/test-path"
+            host_url = "http://localhost"
             query_string = "test=query"
             headers = route_args = route_kwargs = {}
             route = MockRoute()
@@ -204,6 +205,43 @@ class TestBase(BaseMockController):
         
         assert self.controller.user is not None
         assert self.controller.user.key == user.key
+
+    def test_sendEmail(self):
+        to = "test" + UCHAR + "@example.com"
+        subject = "Subject" + UCHAR
+        html = "<p>Test body</p>"
+        self.controller.sendEmail(to, subject, html)
+
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == 1
+        assert messages[0].to == to
+        assert messages[0].subject == subject
+        assert html in str(messages[0].html)
+        assert "Test body" in str(messages[0].body)
+        assert "<p>" not in str(messages[0].body)
+        assert not hasattr(messages[0], "reply_to")
+
+        reply_to = "test_reply" + UCHAR + "@example.com"
+        self.controller.sendEmail(to, subject, html, reply_to)
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == 2
+        assert messages[1].reply_to == reply_to
+
+    def test_deferEmail(self):
+        to = "test" + UCHAR + "@example.com"
+        subject = "Subject" + UCHAR
+        html = "<p>test email template</p>"
+        template = jinja2.Template(html)
+        self.controller.deferEmail(to, subject, template)
+
+        # move mails out of the queue so we can test them
+        self.executeDeferred(name="mail")
+
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == 1
+        assert messages[0].to == to
+        assert messages[0].subject == subject
+        assert html in str(messages[0].html)
 
 
 class TestForm(BaseMockController):
@@ -400,6 +438,64 @@ class TestUser(BaseTestController):
         response = self.logout()
         response = response.follow() # redirects to index page
         assert '<h2>Index Page</h2>' in response
+
+    def test_forgotPassword(self):
+        response = self.app.get('/forgotpassword')
+        assert '<h2>Forget Your Password?</h2>' in response
+
+        # using an email address not associated with a user should fail silently
+        data = {"email": ("doesnt.exist" + UCHAR + "@example.com").encode("utf8")}
+        response = self.sessionPost('/forgotpassword', data)
+        response = response.follow()
+        assert 'Your password reset email has been sent.' in response
+
+        # but the mail queue should be empty
+        self.executeDeferred(name="mail")
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == 0
+
+        # an email address that is associated with a user should respond the same
+        data = {"email": self.user.email.encode("utf8")}
+        response = self.sessionPost('/forgotpassword', data)
+        response = response.follow()
+        assert 'Your password reset email has been sent.' in response
+
+        # except this time the mail queue should have something
+        self.executeDeferred(name="mail")
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == 1
+        assert messages[0].to == self.user.email
+        assert messages[0].subject == "Reset Password"
+
+    def test_resetPassword(self):
+        # without the right authorization this page should redirect with a warning
+        response = self.app.get('/resetpassword')
+        response = response.follow()
+        assert 'That reset password link has expired.' in response
+
+        # with the right auth this page should display properly
+        key = self.user.key.urlsafe()
+        token = self.user.resetPasswordToken()
+        response = self.app.get('/resetpassword?key=' + key + '&token=' + token)
+        assert '<h2>Reset Password</h2>' in response
+
+        # posting a new password should log the user in
+        new_password = "Test password2" + UCHAR
+        data = {}
+        data["password"] = new_password.encode("utf8")
+        data["key"] = key
+        data["token"] = token
+
+        response = self.sessionPost('/resetpassword', data)
+        response = response.follow()
+        assert '<h2>Logged In Home Page</h2>' in response
+
+        # should be able to log in with the new password now too
+        self.logout()
+        self.user.password = new_password
+        response = self.login()
+        response = response.follow()
+        assert '<h2>Logged In Home Page</h2>' in response
 
 
 class TestAdmin(BaseTestController):

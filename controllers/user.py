@@ -1,4 +1,4 @@
-import os
+from datetime import datetime, timedelta
 
 from base import BaseController, FormController, withUser, withoutUser
 
@@ -27,7 +27,7 @@ class SignupController(BaseLoginController):
     @withoutUser
     def get(self):
 
-        self.renderTemplate('signup.html')
+        self.renderTemplate('user/signup.html')
 
     @withoutUser
     def post(self):
@@ -36,7 +36,7 @@ class SignupController(BaseLoginController):
 
         # extra validation to make sure that email address isn't already in use
         if not errors:
-            user = model.User.query(model.User.email == valid_data["email"]).get()
+            user = model.User.getByEmail(valid_data["email"])
             if user:
                 errors["exists"] = True
 
@@ -44,8 +44,7 @@ class SignupController(BaseLoginController):
             del form_data["password"] # never send password back for security
             self.redisplay(form_data, errors, "/signup")
         else:
-            password_salt = os.urandom(64).encode("base64")
-            hashed_password = model.User.hashPassword(valid_data["password"], password_salt)
+            password_salt, hashed_password = model.User.changePassword(valid_data["password"])
             del valid_data["password"]
             user = model.User(password_salt=password_salt, hashed_password=hashed_password, **valid_data)
             user.put()
@@ -60,7 +59,7 @@ class LoginController(BaseLoginController):
     @withoutUser
     def get(self):
 
-        self.renderTemplate('login.html')
+        self.renderTemplate('user/login.html')
 
     @withoutUser
     def post(self):
@@ -70,7 +69,7 @@ class LoginController(BaseLoginController):
         # check that the user exists and the password matches
         user = None
         if not errors:
-            user = model.User.query(model.User.email == valid_data["email"]).get()
+            user = model.User.getByEmail(valid_data["email"])
             if user:
                 hashed_password = model.User.hashPassword(valid_data["password"], user.password_salt)
                 if hashed_password != user.hashed_password:
@@ -93,3 +92,82 @@ class LogoutController(BaseController):
     def get(self):
         self.session.clear()
         self.redirect("/")
+
+
+class ForgotPasswordController(FormController):
+
+    FIELDS = {"email": validateEmail}
+
+    @withoutUser
+    def get(self):
+
+        self.renderTemplate('user/forgot_password.html')
+
+    @withoutUser
+    def post(self):
+        
+        form_data, errors, valid_data = self.validate()
+
+        # for security, don't alert them if the user doesn't exist
+        user = None
+        if not errors:
+            user = model.User.getByEmail(valid_data["email"])
+            if user:
+                self.deferEmail(user.email, "Reset Password", "reset_password.html",
+                    key=user.key.urlsafe(), token=user.resetPasswordToken())
+
+        if errors:
+            self.redisplay(form_data, errors, "/forgotpassword")
+        else:
+            message = "Your password reset email has been sent. "
+            message += "For security purposes it will expire in about an hour."
+            self.flash("success", message)
+            self.redirect("/forgotpassword")
+
+
+class ResetPasswordController(BaseLoginController):
+
+    FIELDS = {"key": validateRequiredString, "token": validateRequiredString, "password": validateRequiredString}
+
+    @withoutUser
+    def before(self):
+        is_valid = False
+        self.key = self.request.get("key")
+        self.token = self.request.get("token")
+        if self.key and self.token:
+            self.user = model.getByKey(self.key)
+            if self.user:
+                # try this hour and the previous one to validate
+                # this gives the link a valid time ranging between 60 and 120 minutes depending on when it is created
+                if self.token == self.user.resetPasswordToken():
+                    is_valid = True
+                else:
+                    hour_ago = datetime.utcnow() - timedelta(hours=1)
+                    if self.token == self.user.resetPasswordToken(timestamp=hour_ago):
+                        is_valid = True
+
+        if not is_valid:
+            self.flash("error", "That reset password link has expired.")
+            self.redirect("/forgotpassword")
+
+    def get(self):
+
+        self.renderTemplate('user/reset_password.html', key=self.key, token=self.token)
+
+    def post(self):
+        
+        form_data, errors, valid_data = self.validate()
+
+        if errors:
+            self.redisplay(form_data, errors, "/resetpassword?key=" + self.key + "&token=" + self.token)
+        else:
+            password_salt, hashed_password = model.User.changePassword(valid_data["password"])
+            del valid_data["password"]
+            self.user.password_salt = password_salt
+            self.user.hashed_password = hashed_password
+            self.user.put()
+
+            # need to uncache so that changes to the user object get picked up by memcache
+            self.uncache(self.key)
+            self.flash("success", "Your password has been changed. You have been logged in with your new password.")
+            self.login(self.user)
