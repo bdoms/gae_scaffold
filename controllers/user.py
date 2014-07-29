@@ -15,6 +15,86 @@ class BaseLoginController(FormController):
         self.redirect("/home")
 
 
+class IndexController(FormController):
+
+    @withUser
+    def get(self):
+
+        self.renderTemplate('user/index.html')
+
+
+class ChangeEmailController(FormController):
+
+    FIELDS = {"email": validateEmail, "password": validateRequiredString}
+
+    @withUser
+    def get(self):
+
+        self.renderTemplate('user/change_email.html')
+
+    @withUser
+    def post(self):
+        
+        form_data, errors, valid_data = self.validate()
+
+        hashed_password = model.User.hashPassword(valid_data["password"], self.user.password_salt)
+        if hashed_password != self.user.hashed_password:
+            errors["match"] = True
+
+        # extra validation to make sure that email address isn't already in use
+        if not errors:
+            user = model.User.getByEmail(valid_data["email"])
+            if user:
+                errors["exists"] = True
+
+        if errors:
+            del form_data["password"] # never send password back for security
+            self.redisplay(form_data, errors, "/changeemail")
+        else:
+            self.user.email = valid_data["email"]
+            self.user.put()
+            self.uncache(self.user.key.urlsafe())
+
+            self.flash("success", "Email changed successfully.")
+            self.redirect("/settings")
+
+
+class ChangePasswordController(FormController):
+
+    FIELDS = {"password": validateRequiredString, "new_password": validateRequiredString}
+
+    @withUser
+    def get(self):
+
+        self.renderTemplate('user/change_password.html')
+
+    @withUser
+    def post(self):
+        
+        form_data, errors, valid_data = self.validate()
+
+        hashed_password = model.User.hashPassword(valid_data["password"], self.user.password_salt)
+        if hashed_password != self.user.hashed_password:
+            errors["match"] = True
+
+        if errors:
+            del form_data["password"]
+            del form_data["new_password"]
+            self.redisplay(form_data, errors, "/changepassword")
+        else:
+            password_salt, hashed_password = model.User.changePassword(valid_data["new_password"])
+            
+            self.user.populate(password_salt=password_salt, hashed_password=hashed_password)
+            self.user.put()
+            self.uncache(self.user.key.urlsafe())
+
+            # must re-auth the user because their password has changed and the auth depends on that
+            self.session["user_auth"] = self.user.getAuth()
+
+            self.flash("success", "Password changed successfully.")
+            self.redirect("/settings")
+
+
 class SignupController(BaseLoginController):
 
     FIELDS = {

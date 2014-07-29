@@ -410,6 +410,52 @@ class TestUser(BaseTestController):
         super(TestUser, self).setUp()
         self.createUser()
 
+    def test_index(self):
+        # should redirect when not logged in
+        response = self.app.get('/settings')
+        assert response.status_int == 302
+
+        self.login()
+
+        response = self.app.get('/settings')
+        assert '<h2>Account Settings</h2>' in response
+
+    def test_changeEmail(self):
+        # should redirect when not logged in
+        response = self.app.get('/changeemail')
+        assert response.status_int == 302
+
+        self.login()
+
+        response = self.app.get('/changeemail')
+        assert '<h2>Change Email</h2>' in response
+
+        data = {}
+        data["email"] = ("changeemail.test" + UCHAR + "@example.com").encode("utf8")
+        data["password"] = self.user.password.encode("utf8")
+
+        response = self.sessionPost('/changeemail', data)
+        response = response.follow()
+        assert 'Email changed successfully.' in response
+
+    def test_changePassword(self):
+        # should redirect when not logged in
+        response = self.app.get('/changepassword')
+        assert response.status_int == 302
+
+        self.login()
+
+        response = self.app.get('/changepassword')
+        assert '<h2>Change Password</h2>' in response
+
+        data = {}
+        data["password"] = self.user.password.encode("utf8")
+        data["new_password"] = ("Test change password" + UCHAR).encode("utf8")
+
+        response = self.sessionPost('/changepassword', data)
+        response = response.follow()
+        assert 'Password changed successfully.' in response
+
     def test_signup(self):
         response = self.app.get('/signup')
         assert '<h2>Sign Up</h2>' in response
