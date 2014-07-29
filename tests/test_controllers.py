@@ -246,6 +246,12 @@ class TestBase(BaseMockController):
 
 class TestForm(BaseMockController):
 
+    class UnicodeMockRequest(object):
+        def __init__(self, d):
+            self.d = d
+        def get(self, field):
+            return unicode(self.d.get(field))
+
     def setUp(self):
         super(TestForm, self).setUp()
 
@@ -260,6 +266,12 @@ class TestForm(BaseMockController):
         assert form_data == self.controller.request
         assert errors == {"invalid_field": True}
         assert valid_data == {"valid_field": "value" + UCHAR + "valid"}
+
+        # non-utf8 should result in a bad request
+        self.mockSessions()
+        self.controller.request = self.UnicodeMockRequest({"valid_field": "\xff"})
+        self.controller.validate()
+        assert self.controller.response.status_int == 400
 
     def test_redisplay(self):
         self.mockSessions()

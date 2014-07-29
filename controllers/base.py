@@ -164,7 +164,11 @@ class FormController(BaseController):
         valid_data = {} # only valid fields
 
         for name, validator in self.FIELDS.items():
-            form_data[name] = self.request.get(name)
+            try:
+                form_data[name] = self.request.get(name)
+            except UnicodeDecodeError:
+                return self.renderError(400)
+            
             valid, data = validator(form_data[name])
             if valid:
                 valid_data[name] = data
