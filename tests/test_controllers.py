@@ -423,47 +423,50 @@ class TestUser(BaseTestController):
         self.createUser()
 
     def test_index(self):
-        # should redirect when not logged in
-        response = self.app.get('/settings')
-        assert response.status_int == 302
-
         self.login()
 
         response = self.app.get('/settings')
         assert '<h2>Account Settings</h2>' in response
 
     def test_changeEmail(self):
-        # should redirect when not logged in
-        response = self.app.get('/changeemail')
-        assert response.status_int == 302
-
         self.login()
 
         response = self.app.get('/changeemail')
         assert '<h2>Change Email</h2>' in response
 
         data = {}
-        data["email"] = ("changeemail.test" + UCHAR + "@example.com").encode("utf8")
-        data["password"] = self.user.password.encode("utf8")
+        data["email"] = self.user.email.encode("utf8")
+        data["password"] = "wrong password"
 
+        response = self.sessionPost('/changeemail', data)
+        response = response.follow()
+        assert 'Invalid current password.' in response
+
+        data["password"] = self.user.password.encode("utf8")
+        response = self.sessionPost('/changeemail', data)
+        response = response.follow()
+        assert 'That email address is already in use.' in response
+
+        data["email"] = ("changeemail.test" + UCHAR + "@example.com").encode("utf8")
         response = self.sessionPost('/changeemail', data)
         response = response.follow()
         assert 'Email changed successfully.' in response
 
     def test_changePassword(self):
-        # should redirect when not logged in
-        response = self.app.get('/changepassword')
-        assert response.status_int == 302
-
         self.login()
 
         response = self.app.get('/changepassword')
         assert '<h2>Change Password</h2>' in response
 
         data = {}
-        data["password"] = self.user.password.encode("utf8")
         data["new_password"] = ("Test change password" + UCHAR).encode("utf8")
+        data["password"] = "wrong password"
 
+        response = self.sessionPost('/changepassword', data)
+        response = response.follow()
+        assert 'Invalid current password.' in response
+
+        data["password"] = self.user.password.encode("utf8")
         response = self.sessionPost('/changepassword', data)
         response = response.follow()
         assert 'Password changed successfully.' in response
@@ -475,9 +478,14 @@ class TestUser(BaseTestController):
         data = {}
         data["first_name"] = ("Test first name" + UCHAR).encode("utf8")
         data["last_name"] = ("Test last name" + UCHAR).encode("utf8")
-        data["email"] = ("signup.test" + UCHAR + "@example.com").encode("utf8")
+        data["email"] = self.user.email.encode("utf8")
         data["password"] = ("Test password" + UCHAR).encode("utf8")
 
+        response = self.sessionPost('/signup', data)
+        response = response.follow()
+        assert 'That email address is already in use.' in response
+
+        data["email"] = ("signup.test" + UCHAR + "@example.com").encode("utf8")
         response = self.sessionPost('/signup', data)
         response = response.follow()
         assert '<h2>Logged In Home Page</h2>' in response
@@ -486,7 +494,24 @@ class TestUser(BaseTestController):
         response = self.app.get('/login')
         assert '<h2>Log In</h2>' in response
 
-        response = self.login()
+        # using an email address not associated with a user should fail silently
+        data = {}
+        data["email"] = ("doesnt.exist" + UCHAR + "@example.com").encode("utf8")
+        data["password"] = "wrong password"
+
+        response = self.sessionPost('/login', data)
+        response = response.follow()
+        assert 'Email and password do not match.' in response
+
+        # a wrong password should also not succeed, even when the email exists
+        data["email"] = self.user.email.encode("utf8")
+
+        response = self.sessionPost('/login', data)
+        response = response.follow()
+        assert 'Email and password do not match.' in response
+
+        data["password"] = self.user.password.encode("utf8")
+        response = self.sessionPost('/login', data)
         response = response.follow() # redirects to home page
         assert '<h2>Logged In Home Page</h2>' in response
 
@@ -560,10 +585,17 @@ class TestAdmin(BaseTestController):
 
     def setUp(self):
         super(TestAdmin, self).setUp()
-        self.createUser(is_admin=True)
-        self.login()
+        self.normal_user = self.createUser()
+        self.admin_user = self.createUser(email="admin.test@example.com", is_admin=True)
 
     def test_admin(self):
+        self.login(self.normal_user)
+
+        assert self.app.get('/admin', status=403)
+
+        self.logout()
+        self.login(self.admin_user)
+
         response = self.app.get('/admin')
         assert '<h2>Admin</h2>' in response
 
