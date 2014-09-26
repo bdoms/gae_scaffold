@@ -57,6 +57,6 @@ skip_files:
 - ^(.*/)?deploy.yaml$
 - ^config/.*\.template\..*$
 - ^tests/.*$
-- ^test.py$
 - ^(.*/)?readme.*$
-- ^lib/gae_deploy/lib/..*$
+- ^lib/gae_deploy/lib/.*$
+- ^lib/webtest/.*$
