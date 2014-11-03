@@ -25,7 +25,7 @@ from lib.gae_html import cacheHTML, renderIfCached
 
 class BaseController(webapp2.RequestHandler):
 
-    jinja_env = jinja2.Environment(autoescape=True, loader=jinja2.FileSystemLoader(TEMPLATES_PATH))
+    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_PATH))
 
     def dispatch(self):
         # get a session store for this request

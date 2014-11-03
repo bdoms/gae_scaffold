@@ -57,6 +57,7 @@ git remote add origin http://path.to.you.server/project
 
 ### Going Forward
 
+ * Escape any untrusted user content you display in templates by using the `|e` filter
  * Add an entry to `templates/sitemap.xml` for each page you want indexed by search engines
  * Modify `config/robots.template.txt` to disallow any pages you don't want crawled (on a per branch basis)
  * Make tests in `tests/test_controllers.py` for new pages
