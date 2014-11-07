@@ -3,7 +3,6 @@
 # python imports
 import json
 import logging
-import os
 
 # app engine api imports
 from google.appengine.api import mail, memcache, users
@@ -129,10 +128,7 @@ class BaseController(webapp2.RequestHandler):
         if 'user_key' in self.session:
             str_key = self.session['user_key']
             user = model.getByKey(str_key)
-
-            user_auth = self.session.get("user_auth")
-            if not user or not user_auth or user_auth != user.getAuth():
-                user = None
+            if not user:
                 del self.session['user_key']
         return user
 

@@ -11,7 +11,6 @@ class BaseLoginController(FormController):
 
     def login(self, user):
         self.session["user_key"] = user.key.urlsafe()
-        self.session["user_auth"] = user.getAuth()
         self.redirect("/home")
 
 
@@ -87,9 +86,6 @@ class ChangePasswordController(FormController):
             self.user.populate(password_salt=password_salt, hashed_password=hashed_password)
             self.user.put()
             self.uncache(self.user.key.urlsafe())
-
-            # must re-auth the user because their password has changed and the auth depends on that
-            self.session["user_auth"] = self.user.getAuth()
 
             self.flash("success", "Password changed successfully.")
             self.redirect("/settings")

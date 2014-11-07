@@ -32,14 +32,6 @@ class TestUser(BaseTestCase):
         assert password_salt == "Y29uc3RhbnQ=\n" # "constant" base64 encoded
         assert hashed_password == "5e42e48a883c89d4975342bfcbb43732dbac170814a73de2ef9d795e1551699129e9faade7b347bd1b3473a7179db03886dde8f27b7c6418de75e5d6a0bd20c2"
 
-    def test_getAuth(self):
-        # the id and hashed_password are normally randomly generated
-        # so we set them to fixed values here so we get consistent test results
-        user = self.createUser(id="test key")
-        user.hashed_password = "test hash"
-        result = user.getAuth()
-        assert result == "5d30aa1f76ebaf18787bfe2ecce3e6f5576bfaaacef337550a32080d6dde7e76afc176c9617150fdf68ef80df6ca1659cc52f1d371413f427cabf8148a0c17cf"
-
     def test_resetPasswordToken(self):
         user = self.createUser()
         user.hashed_password = "test hash"

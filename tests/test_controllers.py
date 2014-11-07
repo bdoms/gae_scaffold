@@ -70,7 +70,6 @@ class BaseMockController(BaseTestController):
 
     def mockLogin(self):
         self.controller.session["user_key"] = self.user.key.urlsafe()
-        self.controller.session["user_auth"] = self.user.getAuth()
 
 
 class TestBase(BaseMockController):
@@ -192,14 +191,7 @@ class TestBase(BaseMockController):
 
         assert self.controller.user is None
 
-        # if a valid user key is added but without valid authorization it should still return none
-        self.controller.session["user_key"] = user.key.urlsafe()
-        self.controller.session["user_auth"] = "bad auth"
-        self.controller.user = controller_base.BaseController.user.func(self.controller)
-
-        assert self.controller.user is None
-
-        # finally if both valid keys are added to the session it should return the user object
+        # finally if a valid keys is added to the session it should return the user object
         self.mockLogin()
         self.controller.user = controller_base.BaseController.user.func(self.controller)
         

@@ -5,7 +5,7 @@ from hashlib import sha512
 from google.appengine.api import memcache
 from google.appengine.ext import ndb
 
-from config.constants import AUTH_PEPPER, PASSWORD_PEPPER, RESET_PEPPER
+from config.constants import PASSWORD_PEPPER, RESET_PEPPER
 
 
 class User(ndb.Model):
@@ -30,10 +30,6 @@ class User(ndb.Model):
         salt = os.urandom(64).encode("base64")
         hashed_password = cls.hashPassword(password, salt)
         return salt, hashed_password
-
-    def getAuth(self):
-        # using the hashed password as a salt means that it automatically updates when the password changes
-        return sha512(self.key.urlsafe() + self.hashed_password + AUTH_PEPPER).hexdigest()
 
     def resetPasswordToken(self, timestamp=None):
         if not timestamp:
