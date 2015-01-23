@@ -19,7 +19,7 @@ import model
 from config.constants import TEMPLATES_PATH, EMAIL_SENDER
 
 # lib imports
-from lib.gae_html import cacheHTML, renderIfCached
+from lib.gae_html import cacheAndRender
 
 
 class BaseController(webapp2.RequestHandler):
@@ -56,16 +56,6 @@ class BaseController(webapp2.RequestHandler):
 
     def flash(self, level, message):
         self.session["flash"] = {"level": level, "message": message}
-
-    def cacheAndRenderTemplate(self, filename, **kwargs):
-        def renderHTML():
-            return self.compileTemplate(filename, **kwargs)
-        # don't cache when there's a flash message
-        if "flash" in self.session:
-            html = renderHTML()
-        else:
-            html = cacheHTML(self, renderHTML, **kwargs)
-        return self.response.out.write(html)
 
     def compileTemplate(self, filename, **kwargs):
         template = self.jinja_env.get_template(filename)

@@ -1,11 +1,10 @@
-from base import BaseController, renderIfCached
+from base import BaseController, cacheAndRender
 
 
 class IndexController(BaseController):
     """ handles request for the main index page of the site """
 
-    @renderIfCached
+    @cacheAndRender()
     def get(self):
 
-        self.cacheAndRenderTemplate('index.html')
-
+        return self.compileTemplate('index.html')
