@@ -78,7 +78,7 @@ This starts a server running at http://localhost:8080/
 #### Run Tests
 
 ```bash
-python tests /path/to/gae
+python tests
 ```
 
 #### Deploy to Production
@@ -86,7 +86,7 @@ python tests /path/to/gae
 To deploy only the current branch:
 
 ```bash
-python lib/gae_deploy config/deploy.yaml --gae /path/to/gae --oauth2
+python lib/gae_deploy config/deploy.yaml --oauth2
 ```
 
 Use the `--branch` (`-b`) option to specify a different branch than the current one to deploy. I.e. `-b master`.
