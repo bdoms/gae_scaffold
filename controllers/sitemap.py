@@ -9,4 +9,4 @@ class SitemapController(BaseController):
         # FYI: sitemaps can only have a max of 50,000 URLs or be 10 MB each
         base_url = "http://" + self.request.headers.get("host")
 
-        return self.compileTemplate('sitemap.xml', base_url=base_url)
+        self.renderTemplate('sitemap.xml', base_url=base_url)

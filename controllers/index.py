@@ -7,4 +7,4 @@ class IndexController(BaseController):
     @cacheAndRender()
     def get(self):
 
-        return self.compileTemplate('index.html')
+        self.renderTemplate('index.html')

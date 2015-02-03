@@ -11,4 +11,4 @@ class StaticController(BaseController):
         filename = "static/" + path + ".html"
         page_title = path.replace("/", " ").strip().title()
 
-        return self.compileTemplate(filename, page_title=page_title)
+        self.renderTemplate(filename, page_title=page_title)
