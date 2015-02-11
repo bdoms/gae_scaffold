@@ -49,12 +49,13 @@ class BaseTestController(BaseTestCase):
 class BaseMockController(BaseTestController):
     """ abstract base class for tests that need request, response, and session mocking """
 
-    def getMockRequest(self):
+    def getMockRequest(self, request_method="get"):
         # calling straight into the controller without a route requires some mock objects to work
         class MockRequest(self.app.app.request_class):
             class MockRoute(object):
-                handler_method = "get"
+                handler_method = request_method
             app = self.app.app
+            method = request_method
             path = url = "/test-path"
             host_url = "http://localhost"
             query_string = "test=query"
@@ -125,15 +126,43 @@ class TestBase(BaseMockController):
         assert self.controller.response.headers['Content-Type'] == "text/html; charset=utf-8"
         assert "test render template" + UCHAR in self.controller.response.unicode_body
 
+        # a HEAD request should not actually render anything, but the type should still be there
+        self.controller.initialize(self.getMockRequest(request_method="HEAD"), self.app.app.response_class())
+        self.controller.renderTemplate(template)
+        assert self.controller.response.headers['Content-Type'] == "text/html; charset=utf-8"
+        assert not self.controller.response.unicode_body
+
     def test_renderError(self):
         self.mockSessions()
         self.controller.renderError(500)
         assert "Error 500:" in self.controller.response.body
 
     def test_renderJSON(self):
-        self.controller.renderJSON({"test key": "test value" + UCHAR})
+        data = {"test key": "test value" + UCHAR}
+        self.controller.renderJSON(data)
         assert self.controller.response.headers['Content-Type'] == "application/json; charset=utf-8"
         assert self.controller.response.unicode_body == '{"test key": "test value' + UCHAR + '"}'
+
+        # a HEAD request should not actually render anything, but the type should still be there
+        self.controller.initialize(self.getMockRequest(request_method="HEAD"), self.app.app.response_class())
+        self.controller.renderJSON(data)
+
+        # note that charset is not set because no unicode was rendered
+        assert self.controller.response.headers['Content-Type'] == "application/json"
+        assert not self.controller.response.body
+
+    def test_head(self):
+        def get(): self.called = True
+        self.controller.get = get
+
+        # HEAD should just call the GET version
+        self.called = False
+        self.controller.head()
+        assert self.called
+
+        # but not have a response body
+        assert not self.controller.response.unicode_body
+        assert not self.controller.response.body
 
     def test_handle_exception(self):
         self.mockSessions()
@@ -232,6 +261,7 @@ class TestBase(BaseMockController):
 class TestForm(BaseMockController):
 
     class UnicodeMockRequest(object):
+        method = "POST"
         def __init__(self, d):
             self.d = d
         def get(self, field):
