@@ -86,7 +86,7 @@ python tests
 To deploy only the current branch:
 
 ```bash
-python lib/gae_deploy config/deploy.yaml --oauth2
+python lib/gae_deploy config/deploy.yaml
 ```
 
 Use the `--branch` (`-b`) option to specify a different branch than the current one to deploy. I.e. `-b master`.
