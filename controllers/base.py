@@ -86,9 +86,12 @@ class BaseController(webapp2.RequestHandler):
 
     def head(self, *args):
         # support HEAD requests in a generic way
-        self.get(*args)
-        # the output may be cached, but still don't send it to save bandwidth
-        self.response.clear()
+        if hasattr(self, 'get'):
+            self.get(*args)
+            # the output may be cached, but don't send it to save bandwidth
+            self.response.clear()
+        else:
+            self.renderError(405)
 
     # this overrides the base class for handling things like 500 errors
     def handle_exception(self, exception, debug):
