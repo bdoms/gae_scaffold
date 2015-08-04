@@ -9,8 +9,6 @@ from google.appengine.datastore import datastore_stub_util
 
 from config.constants import CURRENT_DIR
 
-import model
-
 UCHAR = u"\u03B4" # lowercase delta
 
 
@@ -33,6 +31,9 @@ class BaseTestCase(unittest.TestCase):
         self.task_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
         self.testbed.init_mail_stub()
         self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)
+
+        import model
+        self.model = model
 
     def tearDown(self):
         self.testbed.deactivate()
@@ -61,10 +62,10 @@ class BaseTestCase(unittest.TestCase):
         password = "Test password" + UCHAR
 
         password_salt = os.urandom(64).encode("base64")
-        hashed_password = model.User.hashPassword(password, password_salt)
-        other_user = model.User.query(model.User.email == email).get()
+        hashed_password = self.model.User.hashPassword(password, password_salt)
+        other_user = self.model.User.query(self.model.User.email == email).get()
         assert not other_user, "That email address is already in use."
-        user = model.User(first_name=first_name, last_name=last_name, email=email,
+        user = self.model.User(first_name=first_name, last_name=last_name, email=email,
             password_salt=password_salt, hashed_password=hashed_password, is_admin=is_admin, **kwargs)
         user.put()
         user.password = password # for convenience with signing in during testing

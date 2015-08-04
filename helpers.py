@@ -6,7 +6,7 @@ from google.appengine.api import memcache, users
 
 from lib.gae_deploy import static, DEBUG
 
-TESTING = os.environ.get('SERVER_SOFTWARE', '') == ('DevelopmentTesting')
+TESTING = '(testbed)' in os.environ.get('SERVER_SOFTWARE', '')
 
 
 def debug():

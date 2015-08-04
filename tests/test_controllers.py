@@ -5,7 +5,6 @@ import jinja2
 
 from webtest import TestApp
 
-from controllers import base as controller_base
 from config.constants import SUPPORT_EMAIL
 
 from base import BaseTestCase, UCHAR
@@ -17,7 +16,9 @@ class BaseTestController(BaseTestCase):
         super(BaseTestController, self).setUp()
         # this must be imported after the above setup in order for the stubs to work
         from website import app
+        from controllers import base as controller_base
         self.app = TestApp(app)
+        self.controller_base = controller_base
 
     def setCookie(self, response):
         if 'Set-Cookie' in response.headers:
@@ -79,7 +80,7 @@ class TestBase(BaseMockController):
     def setUp(self):
         super(TestBase, self).setUp()
 
-        self.controller = controller_base.BaseController()
+        self.controller = self.controller_base.BaseController()
         self.controller.initialize(self.getMockRequest(), self.app.app.response_class())
 
     def test_dispatch(self):
@@ -219,13 +220,13 @@ class TestBase(BaseMockController):
         self.controller.session["user_key"] = "doesn't exist"
 
         # because of the way cached properties work we have to do a little hack to re-evaluate
-        self.controller.user = controller_base.BaseController.user.func(self.controller)
+        self.controller.user = self.controller_base.BaseController.user.func(self.controller)
 
         assert self.controller.user is None
 
         # finally if a valid keys is added to the session it should return the user object
         self.mockLogin()
-        self.controller.user = controller_base.BaseController.user.func(self.controller)
+        self.controller.user = self.controller_base.BaseController.user.func(self.controller)
         
         assert self.controller.user is not None
         assert self.controller.user.key == user.key
@@ -280,7 +281,7 @@ class TestForm(BaseMockController):
     def setUp(self):
         super(TestForm, self).setUp()
 
-        self.controller = controller_base.FormController()
+        self.controller = self.controller_base.FormController()
         self.controller.initialize(self.getMockRequest(), self.app.app.response_class())
 
     def test_validate(self):
@@ -315,7 +316,7 @@ class TestDecorators(BaseMockController):
     def setUp(self):
         super(TestDecorators, self).setUp()
 
-        self.controller = controller_base.BaseController()
+        self.controller = self.controller_base.BaseController()
         self.controller.initialize(self.getMockRequest(), self.app.app.response_class())
 
     def test_withUser(self):
@@ -323,7 +324,7 @@ class TestDecorators(BaseMockController):
         self.createUser()
 
         action = lambda x: "action"
-        decorator = controller_base.withUser(action)
+        decorator = self.controller_base.withUser(action)
 
         # without a user the action should not be performed and it should redirect
         response = decorator(self.controller)
@@ -336,7 +337,7 @@ class TestDecorators(BaseMockController):
 
         # login user
         self.mockLogin()
-        self.controller.user = controller_base.BaseController.user.func(self.controller)
+        self.controller.user = self.controller_base.BaseController.user.func(self.controller)
 
         # with a user the action should complete without a redirect
         response = decorator(self.controller)
@@ -348,7 +349,7 @@ class TestDecorators(BaseMockController):
         self.createUser()
 
         action = lambda x: "action"
-        decorator = controller_base.withoutUser(action)
+        decorator = self.controller_base.withoutUser(action)
 
         # without a user the action should complete without a redirect
         response = decorator(self.controller)
@@ -357,7 +358,7 @@ class TestDecorators(BaseMockController):
 
         # with a user the action should not complete and it should redirect
         self.mockLogin()
-        self.controller.user = controller_base.BaseController.user.func(self.controller)
+        self.controller.user = self.controller_base.BaseController.user.func(self.controller)
         response = decorator(self.controller)
         assert response != "action"
         assert self.controller.response.status_int == 302
@@ -365,7 +366,7 @@ class TestDecorators(BaseMockController):
 
     def test_removeSlash(self):
         action = lambda x: "action"
-        decorator = controller_base.removeSlash(action)
+        decorator = self.controller_base.removeSlash(action)
 
         # without a slash it should not redirect
         self.controller.request.path = "/no-slash"
@@ -383,7 +384,7 @@ class TestDecorators(BaseMockController):
     def test_validateReferer(self):
         self.mockSessions()
         action = lambda x: "action"
-        decorator = controller_base.validateReferer(action)
+        decorator = self.controller_base.validateReferer(action)
 
         # with a valid referer the action should complete
         self.controller.request.headers = {"referer": "http://valid", "host": "valid"}

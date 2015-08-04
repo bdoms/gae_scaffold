@@ -9,8 +9,6 @@ except ImportError, e:
     raise ImportError, "App Engine must be in PYTHONPATH."
     sys.exit()
 
-os.environ["SERVER_SOFTWARE"] = "DevelopmentTesting"
-
 test_path = sys.argv[0]
 
 dev_appserver.fix_sys_path()
