@@ -6,6 +6,7 @@ import jinja2
 from webtest import TestApp
 
 from controllers import base as controller_base
+from config.constants import SUPPORT_EMAIL
 
 from base import BaseTestCase, UCHAR
 
@@ -171,6 +172,15 @@ class TestBase(BaseMockController):
         self.controller.handle_exception("test exception", False)
         logging.disable(logging.NOTSET)
         assert "Error 500:" in self.controller.response.body
+
+        # move mails out of the queue so we can test them
+        self.executeDeferred(name="mail")
+
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == 1
+        assert messages[0].to == SUPPORT_EMAIL
+        assert messages[0].subject == "Error Alert"
+        assert "A User Has Experienced an Error" in str(messages[0].html)
 
     def test_cache(self):
         self.executed = 0
@@ -399,6 +409,15 @@ class TestError(BaseTestController):
         logging.disable(logging.CRITICAL)
         assert self.app.post('/logerror', {'reason': 'Default'}, status=200)
         logging.disable(logging.NOTSET)
+
+        # move mails out of the queue so we can test them
+        self.executeDeferred(name="mail")
+
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == 1
+        assert messages[0].to == SUPPORT_EMAIL
+        assert messages[0].subject == "Error Alert"
+        assert "Error Message: Static Error Page: Default" in str(messages[0].html)
 
 
 class TestIndex(BaseTestController):

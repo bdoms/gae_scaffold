@@ -49,7 +49,8 @@ git remote add origin http://path.to.you.server/project
 ### Mandatory Modifications
 
  * Generate the `secret_key` variable in `website.py` and the `*_PEPPERS` in `config/constants.py` for security
- * Replace `EMAIL_SENDER` in `config/constants.py` with a [valid email address](https://developers.google.com/appengine/docs/python/mail/sendingmail)
+ * Replace `SENDER_EMAIL` in `config/constants.py` with a [valid email address](https://developers.google.com/appengine/docs/python/mail/sendingmail)
+ * Replace `SUPPORT_EMAIL` in `config/constants.py` with the email address where you would like to receive support-related messages, such as error alerts
  * Replace `your-app-id` in `app.yaml` to upload the application
  * Replace `YOU@YOUR_DOMAIN.com` in `templates/terms.html` for DMCA compliance
  * A sample Terms of Service and Privacy Policy have been provided as examples, but you are solely responsible for their content and how they apply to your site

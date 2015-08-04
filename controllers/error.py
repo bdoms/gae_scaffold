@@ -1,6 +1,7 @@
 import logging
 
 from base import BaseController
+from config.constants import SUPPORT_EMAIL
 
 
 class ErrorController(BaseController):
@@ -21,6 +22,10 @@ class LogErrorController(BaseController):
         logging.error(exception.message)
 
         self.renderJSON({})
+
+        # send an email notifying us of this error
+        self.deferEmail([SUPPORT_EMAIL], "Error Alert", "error_alert.html",
+            exception=exception, user=self.user, url=self.request.referer)
 
 
 class StaticPageError(Exception):

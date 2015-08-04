@@ -16,7 +16,7 @@ from webapp2_extras import sessions
 # local imports
 import helpers
 import model
-from config.constants import TEMPLATES_PATH, EMAIL_SENDER
+from config.constants import TEMPLATES_PATH, SENDER_EMAIL, SUPPORT_EMAIL
 
 # lib imports
 from lib.gae_html import cacheAndRender
@@ -113,6 +113,10 @@ class BaseController(webapp2.RequestHandler):
 
         self.renderError(status_int, stacktrace=stacktrace)
 
+        # send an email notifying about this error
+        self.deferEmail([SUPPORT_EMAIL], "Error Alert", "error_alert.html", exception=exception,
+            user=self.user, url=self.request.url, method=self.request.method)
+
     def cache(self, key, function, expires=86400):
         value = memcache.get(key)
         if value is None:
@@ -137,9 +141,9 @@ class BaseController(webapp2.RequestHandler):
     def sendEmail(cls, to, subject, html, reply_to=None):
         body = helpers.strip_html(html)
         if reply_to:
-            mail.send_mail(sender=EMAIL_SENDER, to=to, subject=subject, body=body, html=html, reply_to=reply_to)
+            mail.send_mail(sender=SENDER_EMAIL, to=to, subject=subject, body=body, html=html, reply_to=reply_to)
         else:
-            mail.send_mail(sender=EMAIL_SENDER, to=to, subject=subject, body=body, html=html)
+            mail.send_mail(sender=SENDER_EMAIL, to=to, subject=subject, body=body, html=html)
 
     @classmethod
     def fanoutEmail(cls, to, subject, body, reply_to=None):
