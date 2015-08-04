@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import timedelta
 
 import jinja2
 
@@ -592,14 +593,21 @@ class TestUser(BaseTestController):
         assert messages[0].subject == "Reset Password"
 
     def test_resetPassword(self):
+        key = self.user.key.urlsafe()
+
         # without the right authorization this page should redirect with a warning
         response = self.app.get('/resetpassword')
         response = response.follow()
         assert 'That reset password link has expired.' in response
 
+        # even if the user is found the token needs to be right
+        response = self.app.get('/resetpassword?key=' + key + '&token=wrong')
+        response = response.follow()
+        assert 'That reset password link has expired.' in response
+
         # with the right auth this page should display properly
-        key = self.user.key.urlsafe()
-        token = self.user.resetPasswordToken()
+        self.user = self.user.resetPassword()
+        token = self.user.token
         response = self.app.get('/resetpassword?key=' + key + '&token=' + token)
         assert '<h2>Reset Password</h2>' in response
 
@@ -620,6 +628,26 @@ class TestUser(BaseTestController):
         response = self.login()
         response = response.follow()
         assert '<h2>Logged In Home Page</h2>' in response
+
+        # test that we can't reset a second time
+        self.logout()
+        response = self.app.get('/resetpassword?key=' + key + '&token=' + token)
+        response = response.follow()
+        assert 'That reset password link has expired.' in response
+
+        # test that an expired token actually fails
+        self.user = self.user.resetPassword()
+        token = self.user.token
+        
+        # works the first time
+        response = self.app.get('/resetpassword?key=' + key + '&token=' + token)
+        assert '<h2>Reset Password</h2>' in response
+
+        # fails when we move back the date
+        self.user.token_date -= timedelta(seconds=3600)
+        response = self.app.get('/resetpassword?key=' + key + '&token=' + token)
+        response = response.follow()
+        assert 'That reset password link has expired.' in response
 
 
 class TestAdmin(BaseTestController):

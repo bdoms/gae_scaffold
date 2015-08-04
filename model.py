@@ -1,3 +1,4 @@
+import base64
 import os
 from datetime import datetime
 from hashlib import sha512
@@ -14,6 +15,8 @@ class User(ndb.Model):
     email = ndb.StringProperty(required=True)
     password_salt = ndb.StringProperty(required=True)
     hashed_password = ndb.StringProperty(required=True)
+    token = ndb.StringProperty()
+    token_date = ndb.DateTimeProperty()
     is_admin = ndb.BooleanProperty(default=False)
     created_date = ndb.DateTimeProperty(auto_now_add=True)
 
@@ -31,11 +34,13 @@ class User(ndb.Model):
         hashed_password = cls.hashPassword(password, salt)
         return salt, hashed_password
 
-    def resetPasswordToken(self, timestamp=None):
-        if not timestamp:
-            timestamp = datetime.utcnow()
-        now = timestamp.strftime('%Y%m%d%H') # hour resolution
-        return sha512(now + self.hashed_password + RESET_PEPPER).hexdigest()
+    def resetPassword(self):
+        # python b64 always ends in '==' so we remove them because this is for use in a URL
+        self.token = base64.urlsafe_b64encode(os.urandom(16)).replace('=', '')
+        self.token_date = datetime.utcnow()
+        self.put()
+        uncache(self.key.urlsafe())
+        return self
 
 
 # model helper functions
@@ -57,3 +62,6 @@ def cache(key, function, expires=86400):
         value = function()
         memcache.add(key, value, expires)
     return value
+
+def uncache(key, seconds=10):
+    memcache.delete(key, seconds=seconds)

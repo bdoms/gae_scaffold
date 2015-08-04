@@ -189,14 +189,15 @@ class ForgotPasswordController(FormController):
         if not errors:
             user = model.User.getByEmail(valid_data["email"])
             if user:
+                user = user.resetPassword()
                 self.deferEmail([user.email], "Reset Password", "reset_password.html",
-                    key=user.key.urlsafe(), token=user.resetPasswordToken())
+                    key=user.key.urlsafe(), token=user.token)
 
         if errors:
             self.redisplay(form_data, errors, "/forgotpassword")
         else:
             message = "Your password reset email has been sent. "
-            message += "For security purposes it will expire in about an hour."
+            message += "For security purposes it will expire in one hour."
             self.flash("success", message)
             self.redirect("/forgotpassword")
 
@@ -212,15 +213,10 @@ class ResetPasswordController(BaseLoginController):
         self.token = self.request.get("token")
         if self.key and self.token:
             self.user = model.getByKey(self.key)
-            if self.user:
-                # try this hour and the previous one to validate
-                # this gives the link a valid time ranging between 60 and 120 minutes depending on when it is created
-                if self.token == self.user.resetPasswordToken():
+            if self.user and self.user.token and self.token == self.user.token:
+                # token is valid for one hour
+                if (datetime.utcnow() - self.user.token_date).total_seconds() < 3600:
                     is_valid = True
-                else:
-                    hour_ago = datetime.utcnow() - timedelta(hours=1)
-                    if self.token == self.user.resetPasswordToken(timestamp=hour_ago):
-                        is_valid = True
 
         if not is_valid:
             self.flash("error", "That reset password link has expired.")
@@ -241,6 +237,8 @@ class ResetPasswordController(BaseLoginController):
             del valid_data["password"]
             self.user.password_salt = password_salt
             self.user.hashed_password = hashed_password
+            self.user.token = None
+            self.user.token_date = None
             self.user.put()
 
             # need to uncache so that changes to the user object get picked up by memcache

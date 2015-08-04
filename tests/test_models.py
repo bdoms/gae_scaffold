@@ -1,10 +1,12 @@
-
-import datetime
+from datetime import datetime
 
 from base import BaseTestCase, UCHAR
 
 
 class TestUser(BaseTestCase):
+
+    def stubUrandom(self, n):
+        return "constant"
 
     def test_getByEmail(self):
         created_user = self.createUser()
@@ -17,10 +19,8 @@ class TestUser(BaseTestCase):
 
     def test_changePassword(self):
         # stub the os urandom method so that we get constant results
-        def stubUrandom(n):
-            return "constant"
         orig = self.model.os.urandom
-        self.model.os.urandom = stubUrandom
+        self.model.os.urandom = self.stubUrandom
 
         password_salt, hashed_password = self.model.User.changePassword("test password" + UCHAR)
 
@@ -30,12 +30,20 @@ class TestUser(BaseTestCase):
         assert password_salt == "Y29uc3RhbnQ=\n" # "constant" base64 encoded
         assert hashed_password == "5e42e48a883c89d4975342bfcbb43732dbac170814a73de2ef9d795e1551699129e9faade7b347bd1b3473a7179db03886dde8f27b7c6418de75e5d6a0bd20c2"
 
-    def test_resetPasswordToken(self):
+    def test_resetPassword(self):
         user = self.createUser()
-        user.hashed_password = "test hash"
-        dt = datetime.datetime(2000, 1, 1)
-        result = user.resetPasswordToken(timestamp=dt)
-        assert result == "5324d910f13981f6600135288ff4c9899c90b8e4ffddefcbc172d1e275558489965f005a448041ed94842c7c2b62dab6c62832c5c3088d05477ec83a123d44a9"
+
+        # stub the os urandom method so that we get constant results
+        orig = self.model.os.urandom
+        self.model.os.urandom = self.stubUrandom
+
+        user = user.resetPassword()
+
+        # revert the stub to the original now that the method has been called
+        self.model.os.urandom = orig
+
+        assert user.token == "Y29uc3RhbnQ" # "constant" base64 encoded for URLs
+        assert (datetime.utcnow() - user.token_date).total_seconds() < 1 # should be very fresh
 
 
 class TestModelFunctions(BaseTestCase):
@@ -59,3 +67,19 @@ class TestModelFunctions(BaseTestCase):
         # the value should now be cached, so the function should not be executed again
         result = self.model.cache("test key", testFunction)
         assert self.executed == 1
+
+    def test_uncache(self):
+        self.executed = 0
+        def testFunction():
+            self.executed += 1
+            return True
+        assert self.executed == 0
+
+        result = self.model.cache("test key", testFunction)
+        assert self.executed == 1
+
+        self.model.uncache("test key")
+
+        # the value should not be cached, so the function should execute again
+        result = self.model.cache("test key", testFunction)
+        assert self.executed == 2
