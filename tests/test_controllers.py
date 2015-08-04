@@ -394,6 +394,12 @@ class TestError(BaseTestController):
         # this just covers any URL not handled by something else - always produces 404
         assert self.app.get('/nothing-to-see-here', status=404)
 
+    def test_logError(self):
+        # static error pages call this to log to try to log themselves
+        logging.disable(logging.CRITICAL)
+        assert self.app.post('/logerror', {'reason': 'Default'}, status=200)
+        logging.disable(logging.NOTSET)
+
 
 class TestIndex(BaseTestController):
 

@@ -21,6 +21,7 @@ ROUTES = [('/', index.IndexController),
           ('/admin', admin.AdminController),
           ('/dev', dev.DevController),
           #('/errors/(.*)', static.StaticController), # uncomment to test static error pages
+          ('/logerror', error.LogErrorController),
           ('/(.*)', error.ErrorController)
          ]
 
