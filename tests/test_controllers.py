@@ -246,7 +246,7 @@ class TestBase(BaseMockController):
         subject = "Subject" + UCHAR
         html = "<p>test email template</p>"
         template = jinja2.Template(html)
-        self.controller.deferEmail(to, subject, template)
+        self.controller.deferEmail([to], subject, template)
 
         # move mails out of the queue so we can test them
         self.executeDeferred(name="mail")

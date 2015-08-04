@@ -141,13 +141,28 @@ class BaseController(webapp2.RequestHandler):
         else:
             mail.send_mail(sender=EMAIL_SENDER, to=to, subject=subject, body=body, html=html)
 
+    @classmethod
+    def fanoutEmail(cls, to, subject, body, reply_to=None):
+        # do it in batches and continue to fan out to minimize chance that it gets stuck
+        batch_size = 10
+        leftovers = to[batch_size:]
+        if leftovers:
+            deferred.defer(cls.fanoutEmail, leftovers, subject, body, reply_to=reply_to, _queue="mail")
+        for to_email in to[:batch_size]:
+            deferred.defer(cls.sendEmail, to_email, subject, body, reply_to=reply_to, _queue="mail")
+
     def deferEmail(self, to, subject, filename, reply_to=None, **kwargs):
-        kwargs["host"] = self.request.host_url
+        # this supports passing a template as well as a file
         if type(filename) == type(""):
             filename = "emails/" + filename
         template = self.jinja_env.get_template(filename)
+
+        # support passing in a custom host to prefix link
+        if "host" not in kwargs:
+            kwargs["host"] = self.request.host_url
         html = template.render(kwargs)
-        deferred.defer(self.sendEmail, to, subject, html, reply_to=reply_to, _queue="mail")
+
+        self.fanoutEmail(to, subject, html, reply_to=reply_to)
 
 
 class FormController(BaseController):

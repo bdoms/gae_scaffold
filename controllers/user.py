@@ -189,7 +189,7 @@ class ForgotPasswordController(FormController):
         if not errors:
             user = model.User.getByEmail(valid_data["email"])
             if user:
-                self.deferEmail(user.email, "Reset Password", "reset_password.html",
+                self.deferEmail([user.email], "Reset Password", "reset_password.html",
                     key=user.key.urlsafe(), token=user.resetPasswordToken())
 
         if errors:
