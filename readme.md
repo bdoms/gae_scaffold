@@ -1,4 +1,4 @@
-Copyright &copy; 2011-2014, [Brendan Doms](http://www.bdoms.com/)  
+Copyright &copy; 2011-2016, [Brendan Doms](http://www.bdoms.com/)  
 Licensed under the [MIT license](http://www.opensource.org/licenses/MIT)
 
 
@@ -39,10 +39,14 @@ git clone --recursive https://github.com/bdoms/gae_scaffold.git
 After that to track or save progress to your own repo just change the remote:
 
 ```bash
-git remote rm origin
-git remote add origin http://path.to.you.server/project
+git remote set-url origin http://path.to.you.server/project
 ```
 
+If you don't want to retain the scaffold's history as part of your project I recommend this one line squash:
+
+```bash
+git reset $(git commit-tree HEAD^{tree} -m "Initial commit.")
+```
 
 ## Use
 
