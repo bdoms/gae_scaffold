@@ -32,7 +32,7 @@ class BaseController(webapp2.RequestHandler):
 
         if hasattr(self, "before"):
             try:
-                self.before()
+                self.before(*self.request.route_args, **self.request.route_kwargs)
             except Exception as e:
                 self.handle_exception(e, False)
 
@@ -42,7 +42,7 @@ class BaseController(webapp2.RequestHandler):
         
             if hasattr(self, "after"):
                 try:
-                    self.after()
+                    self.after(*self.request.route_args, **self.request.route_kwargs)
                 except Exception as e:
                     self.handle_exception(e, False)
 
