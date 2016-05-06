@@ -10,7 +10,7 @@
 
     <p>
         <label for="first_name">First Name</label>
-        <input type="text" name="first_name" id="first_name" required value="{{form.get('first_name', '')}}" />
+        <input type="text" name="first_name" id="first_name" required autofocus value="{{form.get('first_name', '')}}" />
         {% if errors.get('first_name') %}
             <span class="error">Please enter a valid first name.</span>
         {% endif %}
