@@ -193,10 +193,12 @@ class FormController(BaseController):
 
         return form_data, errors, valid_data
 
-    def redisplay(self, form_data, errors, url):
+    def redisplay(self, form_data, errors, url=None):
+        """ do not include a url if you don't want to redirect, e.g. from ajax """
         self.session["form_data"] = form_data
         self.session["errors"] = errors
-        self.redirect(url)
+        if url:
+            self.redirect(url)
 
 
 def withUser(action):
