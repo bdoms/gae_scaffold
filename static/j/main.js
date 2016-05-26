@@ -7,11 +7,11 @@ var ajax = function(method, url, data, callback) {
                 callback(request.responseText);
             }
         }
-    }
+    };
     
     request.open(method, url, true);
     if (data != null) {
-        request.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
 
         var query = [];
         for (var key in data) {
@@ -20,7 +20,7 @@ var ajax = function(method, url, data, callback) {
             }
         }
 
-        request.send(query.join("&"));
+        request.send(query.join('&'));
     }
     else {
         request.send();
