@@ -19,7 +19,7 @@ import model
 from config.constants import TEMPLATES_PATH, SENDER_EMAIL, SUPPORT_EMAIL
 
 # lib imports
-from lib.gae_html import cacheAndRender
+from gae_html import cacheAndRender
 
 
 class BaseController(webapp2.RequestHandler):

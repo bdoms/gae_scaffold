@@ -3,7 +3,7 @@ from base import FormController
 
 import model
 
-from lib.gae_validators import validateEmail
+from gae_validators import validateEmail
 
 LOGOUT_URL = users.create_logout_url("/")
 

@@ -1,9 +1,9 @@
 # templates
 import os
 
-CURRENT_DIR = os.getcwd()
-TEMPLATES_PATH = os.path.join(CURRENT_DIR, 'templates')
-LIB_PATH = os.path.join(CURRENT_DIR, 'lib')
+APP_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+TEMPLATES_PATH = os.path.join(APP_PATH, 'templates')
+LIB_PATH = os.path.join(APP_PATH, 'lib')
 
 SENDER_EMAIL = 'replace.sender@yourdomain.com'
 SUPPORT_EMAIL = 'replace.support@yourdomain.com'

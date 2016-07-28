@@ -4,7 +4,7 @@ from base import BaseController, FormController, withUser, withoutUser
 
 import model
 
-from lib.gae_validators import validateRequiredString, validateEmail
+from gae_validators import validateRequiredString, validateEmail
 
 
 class BaseLoginController(FormController):

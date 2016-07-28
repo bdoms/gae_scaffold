@@ -6,7 +6,7 @@ import unittest
 from google.appengine.ext import testbed
 from google.appengine.datastore import datastore_stub_util
 
-from config.constants import CURRENT_DIR
+from config.constants import APP_PATH
 
 UCHAR = u"\u03B4" # lowercase delta
 
@@ -26,7 +26,7 @@ class BaseTestCase(unittest.TestCase):
         self.testbed.init_memcache_stub()
         self.testbed.init_user_stub()
         # need to include the path where queue.yaml exists so that the stub knows about named queues
-        self.testbed.init_taskqueue_stub(root_path=CURRENT_DIR)
+        self.testbed.init_taskqueue_stub(root_path=APP_PATH)
         self.task_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
         self.testbed.init_mail_stub()
         self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)

@@ -13,9 +13,9 @@ dev_appserver.fix_sys_path()
 # fix_sys_path removes the current working directory, so we add it back in
 sys.path.append('.')
 
-# needed to be able to import the third party libraries
-from config.constants import LIB_PATH
-sys.path.append(os.path.join(LIB_PATH, 'webtest'))
+# import and run config so this env matches the normal one
+import appengine_config
+(appengine_config)
 
 test_path = sys.argv[-1]
 loader = unittest.loader.TestLoader()
