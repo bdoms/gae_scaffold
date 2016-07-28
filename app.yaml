@@ -59,4 +59,5 @@ skip_files:
 - ^tests/.*$
 - ^(.*/)?readme.*$
 - ^lib/gae_deploy/lib/.*$
+- ^lib/(gae_html|gae_validators)/test\.py$
 - ^lib/webtest/.*$
