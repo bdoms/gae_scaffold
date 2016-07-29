@@ -5,12 +5,38 @@ from base import BaseController, FormController, withUser, withoutUser
 import model
 
 from gae_validators import validateRequiredString, validateEmail
+import httpagentparser
 
 
 class BaseLoginController(FormController):
 
-    def login(self, user):
-        self.session["user_key"] = user.key.urlsafe()
+    def login(self, user, new=False):
+        ua = self.request.headers.get('User-Agent', '')
+        ip = self.request.remote_addr or ''
+        auth = None
+
+        if not new:
+            auth = user.getAuth(ua)
+
+        if auth:
+            # note that this triggers the last login auto update
+            auth.ip = ip
+            auth.put()
+        else:
+            parsed = httpagentparser.detect(ua)
+            os = browser = device = ''
+            if 'os' in parsed:
+                # shows up as Linux for Android, Mac OS for iOS
+                os = parsed['os']['name']
+            if 'browser' in parsed:
+                browser = parsed['browser']['name']
+            if 'dist' in parsed:
+                # "dist" stands for "distribution" - like Android, iOS
+                device = parsed['dist']['name']
+            auth = model.Auth(user_agent=ua, os=os, browser=browser, device=device, ip=ip, parent=user.key)
+            auth.put()
+
+        self.session['auth_key'] = auth.key.urlsafe()
         self.redirect("/home")
 
 
@@ -20,6 +46,36 @@ class IndexController(FormController):
     def get(self):
 
         self.renderTemplate('user/index.html')
+
+
+class AuthsController(FormController):
+
+    @withUser
+    def get(self):
+
+        auths = self.user.auths
+        current_auth_key = self.session['auth_key']
+
+        self.renderTemplate('user/auths.html', auths=auths, current_auth_key=current_auth_key)
+
+    @withUser
+    def post(self):
+
+        str_key = self.request.get('auth_key')
+
+        try:
+            auth_key = model.ndb.Key(urlsafe=str_key)
+        except:
+            self.flash('error', 'Invalid session.')
+        else:
+            if auth_key.parent() != self.user.key:
+                return self.renderError(403)
+            else:
+                self.uncache(str_key)
+                auth_key.delete()
+                self.flash('success', 'Access revoked.')
+
+        self.redirect('/sessions')
 
 
 class ChangeEmailController(FormController):
@@ -125,7 +181,7 @@ class SignupController(BaseLoginController):
             user = model.User(password_salt=password_salt, hashed_password=hashed_password, **valid_data)
             user.put()
             self.flash("success", "Thank you for signing up!")
-            self.login(user)
+            self.login(user, new=True)
 
 
 class LoginController(BaseLoginController):

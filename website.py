@@ -8,6 +8,7 @@ from controllers import admin, dev, error, home, index, sitemap, static, user
 ROUTES = [('/', index.IndexController),
           ('/home', home.HomeController),
           ('/settings', user.IndexController),
+          ('/sessions', user.AuthsController),
           ('/changeemail', user.ChangeEmailController),
           ('/changepassword', user.ChangePasswordController),
           ('/signup', user.SignupController),

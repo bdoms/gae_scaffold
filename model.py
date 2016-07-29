@@ -20,6 +20,10 @@ class User(ndb.Model):
     is_admin = ndb.BooleanProperty(default=False)
     created_date = ndb.DateTimeProperty(auto_now_add=True)
 
+    @property
+    def auths(self):
+        return Auth.query(ancestor=self.key).order(-Auth.last_login)
+
     @classmethod
     def getByEmail(cls, email):
         return cls.query(cls.email == email).get()
@@ -34,6 +38,9 @@ class User(ndb.Model):
         hashed_password = cls.hashPassword(password, salt)
         return salt, hashed_password
 
+    def getAuth(self, user_agent):
+        return Auth.query(Auth.user_agent == user_agent, ancestor=self.key).get()
+
     def resetPassword(self):
         # python b64 always ends in '==' so we remove them because this is for use in a URL
         self.token = base64.urlsafe_b64encode(os.urandom(16)).replace('=', '')
@@ -41,6 +48,20 @@ class User(ndb.Model):
         self.put()
         uncache(self.key.urlsafe())
         return self
+
+
+class Auth(ndb.Model):
+    user_agent = ndb.StringProperty(required=True)
+    os = ndb.StringProperty(required=True)
+    browser = ndb.StringProperty(required=True)
+    device = ndb.StringProperty(required=True)
+    ip = ndb.StringProperty(required=True)
+    first_login = ndb.DateTimeProperty(auto_now_add=True)
+    last_login = ndb.DateTimeProperty(auto_now=True)
+
+    @property
+    def user(self):
+        return self.key.parent().get()
 
 
 # model helper functions

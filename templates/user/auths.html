@@ -1,0 +1,48 @@
+{% extends "/base.html" %}
+{% block content %}
+
+<h2>Active Sessions</h2>
+
+<table>
+<thead>
+    <tr>
+        <th>Device</th>
+        <th>IP Address</th>
+        <th>Last Login</th>
+        <th>Actions</th>
+    </tr>
+</thead>
+<tbody>
+{% for auth in auths %}
+    <tr>
+        <td>
+            {% if auth.device %}
+                {{ auth.device }}
+            {% else %}
+                {{ auth.os }}
+            {% endif %}
+            {{ auth.browser }}
+        </td>
+        <td>{{ auth.ip }}</td>
+        <td>
+            <time datetime="{{ auth.last_login.isoformat() }}Z">
+                {{ auth.last_login.isoformat() }}Z
+            </time>
+        </td>
+        <td>
+            {% if auth.key.urlsafe() == current_auth_key %}
+                Current Session
+            {% else %}
+                <form action="" method="post">
+                    <input type="hidden" name="auth_key" value="{{ auth.key.urlsafe() }}" />
+
+                    <input type="submit" value="Revoke Access" />
+                </form>
+            {% endif %}
+        </td>
+    </tr>
+{% endfor %}
+</tbody>
+</table>
+
+{% endblock %}

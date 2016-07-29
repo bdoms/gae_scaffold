@@ -126,17 +126,19 @@ class BaseController(webapp2.RequestHandler):
             memcache.add(key, value, expires)
         return value
 
-    def uncache(self, key, seconds=0):
+    def uncache(self, key, seconds=10):
         memcache.delete(key, seconds=seconds)
 
     @webapp2.cached_property
     def user(self):
         user = None
-        if 'user_key' in self.session:
-            str_key = self.session['user_key']
-            user = model.getByKey(str_key)
-            if not user:
-                del self.session['user_key']
+        if 'auth_key' in self.session:
+            str_key = self.session['auth_key']
+            auth = model.getByKey(str_key)
+            if auth:
+                user = auth.user
+            else:
+                del self.session['auth_key']
         return user
 
     @classmethod

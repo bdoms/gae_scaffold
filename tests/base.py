@@ -74,3 +74,9 @@ class BaseTestCase(unittest.TestCase):
             self.user = user
 
         return user
+
+    def createAuth(self, user):
+        auth = self.model.Auth(user_agent='test user agent' + UCHAR, os='test os' + UCHAR,
+            browser='test browser' + UCHAR, device='test device' + UCHAR, ip='127.0.0.1', parent=user.key)
+        auth.put()
+        return auth

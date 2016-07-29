@@ -6,6 +6,7 @@ TEMPLATES_PATH = os.path.join(APP_PATH, 'templates')
 LIB_PATH = os.path.join(APP_PATH, 'lib')
 PHC_PATH = os.path.join(LIB_PATH, 'python-http-client')
 SENDGRID_PATH = os.path.join(LIB_PATH, 'sendgrid-python')
+HAP_PATH = os.path.join(LIB_PATH, 'httpagentparser')
 
 # replace this with your own SendGrid API Key
 # without it you'll be limited to the App Engine quota (https://cloud.google.com/appengine/docs/quotas#Mail)

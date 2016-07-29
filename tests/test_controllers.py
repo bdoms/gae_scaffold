@@ -73,7 +73,8 @@ class BaseMockController(BaseTestController):
         self.controller.session_store = MockSessionStore()
 
     def mockLogin(self):
-        self.controller.session["user_key"] = self.user.key.urlsafe()
+        self.auth = self.createAuth(self.user)
+        self.controller.session["auth_key"] = self.auth.key.urlsafe()
 
 
 class TestBase(BaseMockController):
@@ -217,8 +218,8 @@ class TestBase(BaseMockController):
         # to begin with the user should return nothing
         assert self.controller.user is None
 
-        # if an invalid user key is added it should still return none without errors
-        self.controller.session["user_key"] = "doesn't exist"
+        # if an invalid auth key is added it should still return none without errors
+        self.controller.session["auth_key"] = "doesn't exist"
 
         # because of the way cached properties work we have to do a little hack to re-evaluate
         self.controller.user = self.controller_base.BaseController.user.func(self.controller)
@@ -463,12 +464,43 @@ class TestUser(BaseTestController):
     def setUp(self):
         super(TestUser, self).setUp()
         self.createUser()
+        self.other_user = self.createUser(email='test2@test.com')
+        self.other_auth = self.createAuth(user=self.other_user)
 
     def test_index(self):
         self.login()
 
         response = self.app.get('/settings')
         assert '<h2>Account Settings</h2>' in response
+
+    def test_auths(self):
+        self.login()
+
+        user_auth = list(self.user.auths)[0]
+
+        response = self.app.get('/sessions')
+        assert '<h2>Active Sessions</h2>' in response
+        assert user_auth.last_login.isoformat() in response
+        assert user_auth.key.urlsafe() not in response
+        assert 'Current Session' in response
+
+        data = {'auth_key': 'invalid'}
+
+        response = self.sessionPost('/sessions', data)
+        response = response.follow()
+        assert 'Invalid session.' in response
+        assert '<h2>Active Sessions</h2>' in response
+
+        # test that the user is not allowed to remove another's auth
+        data['auth_key'] = self.other_auth.key.urlsafe()
+        assert self.sessionPost('/sessions', data, status=403)
+
+        data['auth_key'] = user_auth.key.urlsafe()
+        response = self.sessionPost('/sessions', data)
+        response = response.follow()
+        response = response.follow() # we revoked our own session, so it redirects twice
+        assert 'Access revoked.' in response
+        assert '<h2>Log In</h2>' in response
 
     def test_changeEmail(self):
         self.login()
