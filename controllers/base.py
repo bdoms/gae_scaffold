@@ -144,11 +144,16 @@ class BaseController(webapp2.RequestHandler):
         body = helpers.strip_html(html)
 
         if SENDGRID_API_KEY:
-            to_email = sgmail.Email(to)
-            from_email = sgmail.Email(SENDER_EMAIL)
-            message = sgmail.Mail(from_email, subject, to_email)
+            message = sgmail.Mail()
+            message.set_from(sgmail.Email(SENDER_EMAIL))
+            message.set_subject(subject)
             message.add_content(sgmail.Content('text/html', html))
             message.add_content(sgmail.Content('text/plain', body))
+
+            personalization = sgmail.Personalization()
+            for to_email in to:
+                personalization.add_to(sgmail.Email(to_email))
+            message.add_personalization(personalization)
 
             if reply_to:
                 message.set_reply_to(sgmail.Email(reply_to))
@@ -161,21 +166,22 @@ class BaseController(webapp2.RequestHandler):
             api = sendgrid.SendGridAPIClient(apikey=SENDGRID_API_KEY)
             response = api.client.mail.send.post(request_body=message.get())
         else:
-            if reply_to:
-                mail.send_mail(sender=SENDER_EMAIL, to=to, subject=subject, body=body, html=html, reply_to=reply_to)
-            else:
-                mail.send_mail(sender=SENDER_EMAIL, to=to, subject=subject, body=body, html=html)
-
+            for to_email in to:
+                if reply_to:
+                    mail.send_mail(sender=SENDER_EMAIL, to=to, subject=subject, body=body, html=html,
+                        reply_to=reply_to)
+                else:
+                    mail.send_mail(sender=SENDER_EMAIL, to=to, subject=subject, body=body, html=html)
 
     @classmethod
     def fanoutEmail(cls, to, subject, body, reply_to=None):
         # do it in batches and continue to fan out to minimize chance that it gets stuck
-        batch_size = 10
+        batch_size = 5
+        deferred.defer(cls.sendEmail, to[:batch_size], subject, body, reply_to=reply_to, _queue="mail")
+
         leftovers = to[batch_size:]
         if leftovers:
             deferred.defer(cls.fanoutEmail, leftovers, subject, body, reply_to=reply_to, _queue="mail")
-        for to_email in to[:batch_size]:
-            deferred.defer(cls.sendEmail, to_email, subject, body, reply_to=reply_to, _queue="mail")
 
     def deferEmail(self, to, subject, filename, reply_to=None, **kwargs):
         # this supports passing a template as well as a file

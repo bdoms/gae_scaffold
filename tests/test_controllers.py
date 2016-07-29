@@ -236,7 +236,7 @@ class TestBase(BaseMockController):
         to = "test" + UCHAR + "@example.com"
         subject = "Subject" + UCHAR
         html = "<p>Test body</p>"
-        self.controller.sendEmail(to, subject, html)
+        self.controller.sendEmail([to], subject, html)
 
         messages = self.mail_stub.get_sent_messages()
         assert len(messages) == 1
@@ -248,7 +248,7 @@ class TestBase(BaseMockController):
         assert not hasattr(messages[0], "reply_to")
 
         reply_to = "test_reply" + UCHAR + "@example.com"
-        self.controller.sendEmail(to, subject, html, reply_to)
+        self.controller.sendEmail([to], subject, html, reply_to)
         messages = self.mail_stub.get_sent_messages()
         assert len(messages) == 2
         assert messages[1].reply_to == reply_to
