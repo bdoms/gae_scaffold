@@ -60,4 +60,5 @@ skip_files:
 - ^(.*/)?readme.*$
 - ^lib/gae_deploy/lib/.*$
 - ^lib/(gae_html|gae_validators)/test\.py$
+- ^lib/(sendgrid-python|python-http-client)/(examples|test)/.*$
 - ^lib/webtest/.*$

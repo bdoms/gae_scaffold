@@ -10,3 +10,9 @@
 [submodule "lib/gae_validators"]
 	path = lib/gae_validators
 	url = https://github.com/bdoms/gae_validators.git
+[submodule "lib/sendgrid-python"]
+	path = lib/sendgrid-python
+	url = https://github.com/sendgrid/sendgrid-python.git
+[submodule "lib/python-http-client"]
+	path = lib/python-http-client
+	url = https://github.com/sendgrid/python-http-client

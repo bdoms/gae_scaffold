@@ -1,4 +1,6 @@
 from google.appengine.ext import vendor
-from config.constants import LIB_PATH
+from config.constants import LIB_PATH, PHC_PATH, SENDGRID_PATH
 
 vendor.add(LIB_PATH)
+vendor.add(PHC_PATH)
+vendor.add(SENDGRID_PATH)

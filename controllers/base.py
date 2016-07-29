@@ -16,10 +16,12 @@ from webapp2_extras import sessions
 # local imports
 import helpers
 import model
-from config.constants import TEMPLATES_PATH, SENDER_EMAIL, SUPPORT_EMAIL
+from config.constants import TEMPLATES_PATH, SENDGRID_API_KEY, SENDER_EMAIL, SUPPORT_EMAIL
 
 # lib imports
 from gae_html import cacheAndRender
+import sendgrid
+from sendgrid.helpers import mail as sgmail
 
 
 class BaseController(webapp2.RequestHandler):
@@ -140,10 +142,30 @@ class BaseController(webapp2.RequestHandler):
     @classmethod
     def sendEmail(cls, to, subject, html, reply_to=None):
         body = helpers.strip_html(html)
-        if reply_to:
-            mail.send_mail(sender=SENDER_EMAIL, to=to, subject=subject, body=body, html=html, reply_to=reply_to)
+
+        if SENDGRID_API_KEY:
+            to_email = sgmail.Email(to)
+            from_email = sgmail.Email(SENDER_EMAIL)
+            message = sgmail.Mail(from_email, subject, to_email)
+            message.add_content(sgmail.Content('text/html', html))
+            message.add_content(sgmail.Content('text/plain', body))
+
+            if reply_to:
+                message.set_reply_to(sgmail.Email(reply_to))
+
+            if helpers.debug():
+                mail_settings = sgmail.MailSettings()
+                mail_settings.set_sandbox_mode(sgmail.SandBoxMode(True))
+                message.set_mail_settings(mail_settings)
+
+            api = sendgrid.SendGridAPIClient(apikey=SENDGRID_API_KEY)
+            response = api.client.mail.send.post(request_body=message.get())
         else:
-            mail.send_mail(sender=SENDER_EMAIL, to=to, subject=subject, body=body, html=html)
+            if reply_to:
+                mail.send_mail(sender=SENDER_EMAIL, to=to, subject=subject, body=body, html=html, reply_to=reply_to)
+            else:
+                mail.send_mail(sender=SENDER_EMAIL, to=to, subject=subject, body=body, html=html)
+
 
     @classmethod
     def fanoutEmail(cls, to, subject, body, reply_to=None):
