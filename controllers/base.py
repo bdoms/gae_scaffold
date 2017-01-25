@@ -72,9 +72,16 @@ class BaseController(webapp2.RequestHandler):
         kwargs["flash"] = self.session.pop("flash", {})
         return template.render(kwargs)
 
+    def render(self, content):
+        # uncomment to enable HSTS - note that it can have permanent consequences for your domain
+        # this header is removed from non appspot domains - a custom domain must be whitelisted first
+        # see https://code.google.com/p/googleappengine/issues/detail?id=7427
+        # self.response.headers['Strict-Transport-Security'] = 'max-age=86400; includeSubDomains'
+        self.response.out.write(content)
+
     def renderTemplate(self, filename, **kwargs):
         if self.request.method != 'HEAD':
-            self.response.out.write(self.compileTemplate(filename, **kwargs))
+            self.render(self.compileTemplate(filename, **kwargs))
 
     def renderError(self, status_int, stacktrace=None):
         self.response.set_status(status_int)
@@ -84,7 +91,7 @@ class BaseController(webapp2.RequestHandler):
     def renderJSON(self, data):
         self.response.headers['Content-Type'] = "application/json"
         if self.request.method != 'HEAD':
-            self.response.out.write(json.dumps(data, ensure_ascii=False, encoding='utf-8'))
+            self.render(json.dumps(data, ensure_ascii=False, encoding='utf-8'))
 
     def head(self, *args):
         # support HEAD requests in a generic way
