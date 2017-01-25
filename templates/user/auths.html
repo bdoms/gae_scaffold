@@ -16,12 +16,16 @@
 {% for auth in auths %}
     <tr>
         <td>
-            {% if auth.device %}
-                {{ auth.device }}
+            {% if auth.device or auth.os or auth.browser %}
+                {% if auth.device %}
+                    {{ auth.device }}
+                {% else %}
+                    {{ auth.os }}
+                {% endif %}
+                {{ auth.browser }}
             {% else %}
-                {{ auth.os }}
+                {{ auth.user_agent }}
             {% endif %}
-            {{ auth.browser }}
         </td>
         <td>{{ auth.ip }}</td>
         <td>

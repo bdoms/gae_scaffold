@@ -13,8 +13,13 @@ class BaseLoginController(FormController):
     def login(self, user, new=False):
         ua = self.request.headers.get('User-Agent', '')
         ip = self.request.remote_addr or ''
-        auth = None
 
+        # reject a login attempt without a user agent or IP address
+        if not ua or not ip:
+            self.flash('error', 'Invalid client.')
+            return self.redisplay({}, {}, "/login")
+
+        auth = None
         if not new:
             auth = user.getAuth(ua)
 

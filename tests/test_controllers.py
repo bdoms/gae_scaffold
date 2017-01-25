@@ -10,6 +10,10 @@ from config.constants import SUPPORT_EMAIL
 
 from base import BaseTestCase, UCHAR
 
+# needed to log in properly
+HEADERS = {'USER_AGENT': 'Test Python UA'}
+ENVIRON = {'REMOTE_ADDR': '127.0.0.1'}
+
 
 class BaseTestController(BaseTestCase):
 
@@ -42,7 +46,8 @@ class BaseTestController(BaseTestCase):
         if not user and hasattr(self, "user"):
             user = self.user
         assert user, "A user is required to sign in."
-        return self.sessionPost('/login', {'email': user.email.encode('utf8'), 'password': user.password.encode('utf8')})
+        return self.sessionPost('/login', {'email': user.email.encode('utf8'),
+            'password': user.password.encode('utf8')}, headers=HEADERS, extra_environ=ENVIRON)
 
     def logout(self):
         response = self.app.get('/logout')
@@ -559,8 +564,17 @@ class TestUser(BaseTestController):
         response = response.follow()
         assert 'That email address is already in use.' in response
 
+        # signup succeeds but won't login without valid user agent or IP address
         data["email"] = ("signup.test" + UCHAR + "@example.com").encode("utf8")
+
         response = self.sessionPost('/signup', data)
+        response = response.follow()
+        assert 'Invalid client.' in response
+
+        # success - use a new email address to avoid conflict with the previous partial success
+        data["email"] = ("signup2.test" + UCHAR + "@example.com").encode("utf8")
+
+        response = self.sessionPost('/signup', data, headers=HEADERS, extra_environ=ENVIRON)
         response = response.follow()
         assert '<h2>Logged In Home Page</h2>' in response
 
@@ -584,8 +598,15 @@ class TestUser(BaseTestController):
         response = response.follow()
         assert 'Email and password do not match.' in response
 
+        # login fails without a user agent or IP address even when password is correct
         data["password"] = self.user.password.encode("utf8")
+
         response = self.sessionPost('/login', data)
+        response = response.follow()
+        assert 'Invalid client.' in response
+
+        # success
+        response = self.sessionPost('/login', data, headers=HEADERS, extra_environ=ENVIRON)
         response = response.follow() # redirects to home page
         assert '<h2>Logged In Home Page</h2>' in response
 
@@ -643,7 +664,7 @@ class TestUser(BaseTestController):
         response = self.app.get('/resetpassword?key=' + key + '&token=' + token)
         assert '<h2>Reset Password</h2>' in response
 
-        # posting a new password should log the user in
+        # posting a new password but without user agent or IP address won't log in
         new_password = "Test password2" + UCHAR
         data = {}
         data["password"] = new_password.encode("utf8")
@@ -651,6 +672,14 @@ class TestUser(BaseTestController):
         data["token"] = token
 
         response = self.sessionPost('/resetpassword', data)
+        response = response.follow()
+        assert 'Invalid client.' in response
+
+        # posting a new password should log the user in - reset again to get a new token
+        self.user = self.user.resetPassword()
+        data["token"] = self.user.token
+
+        response = self.sessionPost('/resetpassword', data, headers=HEADERS, extra_environ=ENVIRON)
         response = response.follow()
         assert '<h2>Logged In Home Page</h2>' in response
 
