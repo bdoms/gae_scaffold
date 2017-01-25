@@ -68,7 +68,10 @@
 
     <script src="{{h.static('/j/main.js')}}"></script>
     {% if not h.debug() %}
-        {# include third-party scripts for tracking or advertising here #}
+        {#
+            include third-party scripts for tracking or advertising here
+            be sure to modify the CSP header in `controllers/base.py` if you add from a new source
+        #}
     {% endif %}
 </body>
 </html>

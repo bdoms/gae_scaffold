@@ -77,6 +77,10 @@ class BaseController(webapp2.RequestHandler):
         # this header is removed from non appspot domains - a custom domain must be whitelisted first
         # see https://code.google.com/p/googleappengine/issues/detail?id=7427
         # self.response.headers['Strict-Transport-Security'] = 'max-age=86400; includeSubDomains'
+
+        # see https://developers.google.com/web/fundamentals/security/csp/
+        self.response.headers['Content-Security-Policy'] = "default-src 'self'"
+
         self.response.out.write(content)
 
     def renderTemplate(self, filename, **kwargs):
