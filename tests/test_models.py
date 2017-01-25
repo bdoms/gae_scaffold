@@ -14,21 +14,32 @@ class TestUser(BaseTestCase):
         assert created_user.key == queried_user.key
 
     def test_hashPassword(self):
+        # stub so we get constant results
+        orig_pepper = self.model.PASSWORD_PEPPER
+        self.model.PASSWORD_PEPPER = "UxsTc4Et9wtVw+l/D8X+eRoK6jz5z0PTQqKn3pclDZc"
+
         result = self.model.User.hashPassword("test password" + UCHAR, "test salt" + UCHAR)
-        assert result == "38051ae4e79c5f5b59fead47300c56d3b6d3a90b050a338f75cd8e637e1dac6f7968473fab0f6870841c9e6dc166fd7f7d9b7fb839f4dfeb2e8c76f82c7c6033"
+
+        # revert the stub
+        self.model.PASSWORD_PEPPER = orig_pepper
+
+        assert result == "91a97a3db1c2b744579e5d961c85501342f99fe3e2e27641a794455f856071301809d9c273738df490d3933fd087a8fbe1d8833d519ee6dc0f12c0005040b40e"
 
     def test_changePassword(self):
-        # stub the os urandom method so that we get constant results
-        orig = self.model.os.urandom
+        # stub so we get constant results
+        orig_random = self.model.os.urandom
+        orig_pepper = self.model.PASSWORD_PEPPER
         self.model.os.urandom = self.stubUrandom
+        self.model.PASSWORD_PEPPER = "okcPQDpIGZSoky1KexCf0MLKtuUdD6Rr0slwLeqr4UM"
 
         password_salt, hashed_password = self.model.User.changePassword("test password" + UCHAR)
 
         # revert the stub to the original now that the method has been called
-        self.model.os.urandom = orig
+        self.model.os.urandom = orig_random
+        self.model.PASSWORD_PEPPER = orig_pepper
 
         assert password_salt == "Y29uc3RhbnQ=\n" # "constant" base64 encoded
-        assert hashed_password == "5e42e48a883c89d4975342bfcbb43732dbac170814a73de2ef9d795e1551699129e9faade7b347bd1b3473a7179db03886dde8f27b7c6418de75e5d6a0bd20c2"
+        assert hashed_password == "a3aefba6defa1b49bcbcfb65e5be16976e91be9c5e5d258782abf35480c52a770a6ef5b80f7c53c20e624d4e9f2279ab2693a0f3278cffd1481b6a1252bbe0dc"
 
     def test_resetPassword(self):
         user = self.createUser()

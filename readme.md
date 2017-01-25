@@ -1,4 +1,4 @@
-Copyright &copy; 2011-2016, [Brendan Doms](http://www.bdoms.com/)  
+Copyright &copy; 2011-2017, [Brendan Doms](http://www.bdoms.com/)  
 Licensed under the [MIT license](http://www.opensource.org/licenses/MIT)
 
 
@@ -52,7 +52,7 @@ git reset $(git commit-tree HEAD^{tree} -m "Initial commit.")
 
 ### Mandatory Modifications
 
- * Generate the `secret_key` variable in `website.py` and the `*_PEPPERS` in `config/constants.py` for security
+ * Generate the `secret_key` variable in `website.py` and the `PASSWORD_PEPPER` in `config/constants.py` for security
  * Replace `SENDER_EMAIL` in `config/constants.py` with a [valid email address](https://developers.google.com/appengine/docs/python/mail/sendingmail)
  * Replace `SUPPORT_EMAIL` in `config/constants.py` with the email address where you would like to receive support-related messages, such as error alerts
  * Replace `your-app-id` in `app.yaml` to upload the application

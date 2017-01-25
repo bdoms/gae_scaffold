@@ -29,7 +29,7 @@ ROUTES = [('/', index.IndexController),
 # any extra config needed when the app starts
 config = {}
 config['webapp2_extras.sessions'] = {
-    'secret_key': 'replace this with the output from os.urandom(64)',
+    'secret_key': 'replace this with the output from os.urandom(64).encode("base64")',
     'cookie_args': {
         # uncomment this line to force cookies to only be sent over SSL
         #'secure': True,

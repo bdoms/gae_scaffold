@@ -6,7 +6,7 @@ from hashlib import sha512
 from google.appengine.api import memcache
 from google.appengine.ext import ndb
 
-from config.constants import PASSWORD_PEPPER, RESET_PEPPER
+from config.constants import PASSWORD_PEPPER
 
 
 class User(ndb.Model):
