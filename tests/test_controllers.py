@@ -46,11 +46,11 @@ class BaseTestController(BaseTestCase):
         if not user and hasattr(self, "user"):
             user = self.user
         assert user, "A user is required to sign in."
-        return self.sessionPost('/login', {'email': user.email.encode('utf8'),
+        return self.sessionPost('/user/login', {'email': user.email.encode('utf8'),
             'password': user.password.encode('utf8')}, headers=HEADERS, extra_environ=ENVIRON)
 
     def logout(self):
-        response = self.app.get('/logout')
+        response = self.app.get('/user/logout')
         return response
 
 
@@ -337,7 +337,7 @@ class TestDecorators(BaseMockController):
         response = decorator(self.controller)
         assert response != "action"
         assert self.controller.response.status_int == 302
-        assert "Location: /login" in str(self.controller.response.headers)
+        assert "Location: /user/login" in str(self.controller.response.headers)
 
         # re-init to clear old response
         self.controller.initialize(self.getMockRequest(), self.app.app.response_class())
@@ -475,7 +475,7 @@ class TestUser(BaseTestController):
     def test_index(self):
         self.login()
 
-        response = self.app.get('/settings')
+        response = self.app.get('/user')
         assert '<h2>Account Settings</h2>' in response
 
     def test_auths(self):
@@ -483,7 +483,7 @@ class TestUser(BaseTestController):
 
         user_auth = list(self.user.auths)[0]
 
-        response = self.app.get('/sessions')
+        response = self.app.get('/user/auths')
         assert '<h2>Active Sessions</h2>' in response
         assert user_auth.last_login.isoformat() in response
         assert user_auth.key.urlsafe() not in response
@@ -491,17 +491,17 @@ class TestUser(BaseTestController):
 
         data = {'auth_key': 'invalid'}
 
-        response = self.sessionPost('/sessions', data)
+        response = self.sessionPost('/user/auths', data)
         response = response.follow()
         assert 'Invalid session.' in response
         assert '<h2>Active Sessions</h2>' in response
 
         # test that the user is not allowed to remove another's auth
         data['auth_key'] = self.other_auth.key.urlsafe()
-        assert self.sessionPost('/sessions', data, status=403)
+        assert self.sessionPost('/user/auths', data, status=403)
 
         data['auth_key'] = user_auth.key.urlsafe()
-        response = self.sessionPost('/sessions', data)
+        response = self.sessionPost('/user/auths', data)
         response = response.follow()
         response = response.follow() # we revoked our own session, so it redirects twice
         assert 'Access revoked.' in response
@@ -510,48 +510,48 @@ class TestUser(BaseTestController):
     def test_changeEmail(self):
         self.login()
 
-        response = self.app.get('/changeemail')
+        response = self.app.get('/user/email')
         assert '<h2>Change Email</h2>' in response
 
         data = {}
         data["email"] = self.user.email.encode("utf8")
         data["password"] = "wrong password"
 
-        response = self.sessionPost('/changeemail', data)
+        response = self.sessionPost('/user/email', data)
         response = response.follow()
         assert 'Invalid current password.' in response
 
         data["password"] = self.user.password.encode("utf8")
-        response = self.sessionPost('/changeemail', data)
+        response = self.sessionPost('/user/email', data)
         response = response.follow()
         assert 'That email address is already in use.' in response
 
         data["email"] = ("changeemail.test" + UCHAR + "@example.com").encode("utf8")
-        response = self.sessionPost('/changeemail', data)
+        response = self.sessionPost('/user/email', data)
         response = response.follow()
         assert 'Email changed successfully.' in response
 
     def test_changePassword(self):
         self.login()
 
-        response = self.app.get('/changepassword')
+        response = self.app.get('/user/password')
         assert '<h2>Change Password</h2>' in response
 
         data = {}
         data["new_password"] = ("Test change password" + UCHAR).encode("utf8")
         data["password"] = "wrong password"
 
-        response = self.sessionPost('/changepassword', data)
+        response = self.sessionPost('/user/password', data)
         response = response.follow()
         assert 'Invalid current password.' in response
 
         data["password"] = self.user.password.encode("utf8")
-        response = self.sessionPost('/changepassword', data)
+        response = self.sessionPost('/user/password', data)
         response = response.follow()
         assert 'Password changed successfully.' in response
 
     def test_signup(self):
-        response = self.app.get('/signup')
+        response = self.app.get('/user/signup')
         assert '<h2>Sign Up</h2>' in response
 
         data = {}
@@ -560,26 +560,26 @@ class TestUser(BaseTestController):
         data["email"] = self.user.email.encode("utf8")
         data["password"] = ("Test password" + UCHAR).encode("utf8")
 
-        response = self.sessionPost('/signup', data)
+        response = self.sessionPost('/user/signup', data)
         response = response.follow()
         assert 'That email address is already in use.' in response
 
         # signup succeeds but won't login without valid user agent or IP address
         data["email"] = ("signup.test" + UCHAR + "@example.com").encode("utf8")
 
-        response = self.sessionPost('/signup', data)
+        response = self.sessionPost('/user/signup', data)
         response = response.follow()
         assert 'Invalid client.' in response
 
         # success - use a new email address to avoid conflict with the previous partial success
         data["email"] = ("signup2.test" + UCHAR + "@example.com").encode("utf8")
 
-        response = self.sessionPost('/signup', data, headers=HEADERS, extra_environ=ENVIRON)
+        response = self.sessionPost('/user/signup', data, headers=HEADERS, extra_environ=ENVIRON)
         response = response.follow()
         assert '<h2>Logged In Home Page</h2>' in response
 
     def test_login(self):
-        response = self.app.get('/login')
+        response = self.app.get('/user/login')
         assert '<h2>Log In</h2>' in response
 
         # using an email address not associated with a user should fail silently
@@ -587,26 +587,26 @@ class TestUser(BaseTestController):
         data["email"] = ("doesnt.exist" + UCHAR + "@example.com").encode("utf8")
         data["password"] = "wrong password"
 
-        response = self.sessionPost('/login', data)
+        response = self.sessionPost('/user/login', data)
         response = response.follow()
         assert 'Email and password do not match.' in response
 
         # a wrong password should also not succeed, even when the email exists
         data["email"] = self.user.email.encode("utf8")
 
-        response = self.sessionPost('/login', data)
+        response = self.sessionPost('/user/login', data)
         response = response.follow()
         assert 'Email and password do not match.' in response
 
         # login fails without a user agent or IP address even when password is correct
         data["password"] = self.user.password.encode("utf8")
 
-        response = self.sessionPost('/login', data)
+        response = self.sessionPost('/user/login', data)
         response = response.follow()
         assert 'Invalid client.' in response
 
         # success
-        response = self.sessionPost('/login', data, headers=HEADERS, extra_environ=ENVIRON)
+        response = self.sessionPost('/user/login', data, headers=HEADERS, extra_environ=ENVIRON)
         response = response.follow() # redirects to home page
         assert '<h2>Logged In Home Page</h2>' in response
 
@@ -618,12 +618,12 @@ class TestUser(BaseTestController):
         assert '<h2>Index Page</h2>' in response
 
     def test_forgotPassword(self):
-        response = self.app.get('/forgotpassword')
+        response = self.app.get('/user/forgotpassword')
         assert '<h2>Forget Your Password?</h2>' in response
 
         # using an email address not associated with a user should fail silently
         data = {"email": ("doesnt.exist" + UCHAR + "@example.com").encode("utf8")}
-        response = self.sessionPost('/forgotpassword', data)
+        response = self.sessionPost('/user/forgotpassword', data)
         response = response.follow()
         assert 'Your password reset email has been sent.' in response
 
@@ -634,7 +634,7 @@ class TestUser(BaseTestController):
 
         # an email address that is associated with a user should respond the same
         data = {"email": self.user.email.encode("utf8")}
-        response = self.sessionPost('/forgotpassword', data)
+        response = self.sessionPost('/user/forgotpassword', data)
         response = response.follow()
         assert 'Your password reset email has been sent.' in response
 
@@ -649,19 +649,19 @@ class TestUser(BaseTestController):
         key = self.user.key.urlsafe()
 
         # without the right authorization this page should redirect with a warning
-        response = self.app.get('/resetpassword')
+        response = self.app.get('/user/resetpassword')
         response = response.follow()
         assert 'That reset password link has expired.' in response
 
         # even if the user is found the token needs to be right
-        response = self.app.get('/resetpassword?key=' + key + '&token=wrong')
+        response = self.app.get('/user/resetpassword?key=' + key + '&token=wrong')
         response = response.follow()
         assert 'That reset password link has expired.' in response
 
         # with the right auth this page should display properly
         self.user = self.user.resetPassword()
         token = self.user.token
-        response = self.app.get('/resetpassword?key=' + key + '&token=' + token)
+        response = self.app.get('/user/resetpassword?key=' + key + '&token=' + token)
         assert '<h2>Reset Password</h2>' in response
 
         # posting a new password but without user agent or IP address won't log in
@@ -671,7 +671,7 @@ class TestUser(BaseTestController):
         data["key"] = key
         data["token"] = token
 
-        response = self.sessionPost('/resetpassword', data)
+        response = self.sessionPost('/user/resetpassword', data)
         response = response.follow()
         assert 'Invalid client.' in response
 
@@ -679,7 +679,7 @@ class TestUser(BaseTestController):
         self.user = self.user.resetPassword()
         data["token"] = self.user.token
 
-        response = self.sessionPost('/resetpassword', data, headers=HEADERS, extra_environ=ENVIRON)
+        response = self.sessionPost('/user/resetpassword', data, headers=HEADERS, extra_environ=ENVIRON)
         response = response.follow()
         assert '<h2>Logged In Home Page</h2>' in response
 
@@ -692,7 +692,7 @@ class TestUser(BaseTestController):
 
         # test that we can't reset a second time
         self.logout()
-        response = self.app.get('/resetpassword?key=' + key + '&token=' + token)
+        response = self.app.get('/user/resetpassword?key=' + key + '&token=' + token)
         response = response.follow()
         assert 'That reset password link has expired.' in response
 
@@ -701,12 +701,12 @@ class TestUser(BaseTestController):
         token = self.user.token
         
         # works the first time
-        response = self.app.get('/resetpassword?key=' + key + '&token=' + token)
+        response = self.app.get('/user/resetpassword?key=' + key + '&token=' + token)
         assert '<h2>Reset Password</h2>' in response
 
         # fails when we move back the date
         self.user.token_date -= timedelta(seconds=3600)
-        response = self.app.get('/resetpassword?key=' + key + '&token=' + token)
+        response = self.app.get('/user/resetpassword?key=' + key + '&token=' + token)
         response = response.follow()
         assert 'That reset password link has expired.' in response
 

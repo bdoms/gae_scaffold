@@ -17,7 +17,7 @@ class BaseLoginController(FormController):
         # reject a login attempt without a user agent or IP address
         if not ua or not ip:
             self.flash('error', 'Invalid client.')
-            return self.redisplay({}, {}, "/login")
+            return self.redisplay({}, {}, "/user/login")
 
         auth = None
         if not new:
@@ -80,17 +80,17 @@ class AuthsController(FormController):
                 auth_key.delete()
                 self.flash('success', 'Access revoked.')
 
-        self.redirect('/sessions')
+        self.redirect('/user/auths')
 
 
-class ChangeEmailController(FormController):
+class EmailController(FormController):
 
     FIELDS = {"email": validateEmail, "password": validateRequiredString}
 
     @withUser
     def get(self):
 
-        self.renderTemplate('user/change_email.html')
+        self.renderTemplate('user/email.html')
 
     @withUser
     def post(self):
@@ -109,24 +109,24 @@ class ChangeEmailController(FormController):
 
         if errors:
             del form_data["password"] # never send password back for security
-            self.redisplay(form_data, errors, "/changeemail")
+            self.redisplay(form_data, errors, "/user/email")
         else:
             self.user.email = valid_data["email"]
             self.user.put()
             self.uncache(self.user.key.urlsafe())
 
             self.flash("success", "Email changed successfully.")
-            self.redirect("/settings")
+            self.redirect("/user")
 
 
-class ChangePasswordController(FormController):
+class PasswordController(FormController):
 
     FIELDS = {"password": validateRequiredString, "new_password": validateRequiredString}
 
     @withUser
     def get(self):
 
-        self.renderTemplate('user/change_password.html')
+        self.renderTemplate('user/password.html')
 
     @withUser
     def post(self):
@@ -140,7 +140,7 @@ class ChangePasswordController(FormController):
         if errors:
             del form_data["password"]
             del form_data["new_password"]
-            self.redisplay(form_data, errors, "/changepassword")
+            self.redisplay(form_data, errors, "/user/password")
         else:
             password_salt, hashed_password = model.User.changePassword(valid_data["new_password"])
             
@@ -149,7 +149,7 @@ class ChangePasswordController(FormController):
             self.uncache(self.user.key.urlsafe())
 
             self.flash("success", "Password changed successfully.")
-            self.redirect("/settings")
+            self.redirect("/user")
 
 
 class SignupController(BaseLoginController):
@@ -179,7 +179,7 @@ class SignupController(BaseLoginController):
 
         if errors:
             del form_data["password"] # never send password back for security
-            self.redisplay(form_data, errors, "/signup")
+            self.redisplay(form_data, errors, "/user/signup")
         else:
             password_salt, hashed_password = model.User.changePassword(valid_data["password"])
             del valid_data["password"]
@@ -218,7 +218,7 @@ class LoginController(BaseLoginController):
 
         if errors:
             del form_data["password"] # never send password back for security
-            self.redisplay(form_data, errors, "/login")
+            self.redisplay(form_data, errors, "/user/login")
         else:
             self.login(user)
 
@@ -255,12 +255,12 @@ class ForgotPasswordController(FormController):
                     key=user.key.urlsafe(), token=user.token)
 
         if errors:
-            self.redisplay(form_data, errors, "/forgotpassword")
+            self.redisplay(form_data, errors, "/user/forgotpassword")
         else:
             message = "Your password reset email has been sent. "
             message += "For security purposes it will expire in one hour."
             self.flash("success", message)
-            self.redirect("/forgotpassword")
+            self.redirect("/user/forgotpassword")
 
 
 class ResetPasswordController(BaseLoginController):
@@ -281,7 +281,7 @@ class ResetPasswordController(BaseLoginController):
 
         if not is_valid:
             self.flash("error", "That reset password link has expired.")
-            self.redirect("/forgotpassword")
+            self.redirect("/user/forgotpassword")
 
     def get(self):
 
@@ -292,7 +292,7 @@ class ResetPasswordController(BaseLoginController):
         form_data, errors, valid_data = self.validate()
 
         if errors:
-            self.redisplay(form_data, errors, "/resetpassword?key=" + self.key + "&token=" + self.token)
+            self.redisplay(form_data, errors, "/user/resetpassword?key=" + self.key + "&token=" + self.token)
         else:
             password_salt, hashed_password = model.User.changePassword(valid_data["password"])
             del valid_data["password"]

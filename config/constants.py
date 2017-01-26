@@ -1,7 +1,7 @@
 import os
 
 APP_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-TEMPLATES_PATH = os.path.join(APP_PATH, 'templates')
+VIEW_PATH = os.path.join(APP_PATH, 'views')
 LIB_PATH = os.path.join(APP_PATH, 'lib')
 PHC_PATH = os.path.join(LIB_PATH, 'python-http-client')
 SENDGRID_PATH = os.path.join(LIB_PATH, 'sendgrid-python')

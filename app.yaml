@@ -40,16 +40,16 @@ handlers:
   script: website.app
 
 error_handlers:
-- file: templates/static/errors/default.html
+- file: views/static/errors/default.html
 
 - error_code: dos_api_denial
-  file: templates/static/errors/dos.html
+  file: views/static/errors/dos.html
 
 - error_code: over_quota
-  file: templates/static/errors/quota.html
+  file: views/static/errors/quota.html
 
 - error_code: timeout
-  file: templates/static/errors/timeout.html
+  file: views/static/errors/timeout.html
 
 skip_files:
 - ^(.*/)?.*\.py[co]$

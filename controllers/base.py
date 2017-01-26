@@ -16,7 +16,7 @@ from webapp2_extras import sessions
 # local imports
 import helpers
 import model
-from config.constants import TEMPLATES_PATH, SENDGRID_API_KEY, SENDER_EMAIL, SUPPORT_EMAIL
+from config.constants import VIEW_PATH, SENDGRID_API_KEY, SENDER_EMAIL, SUPPORT_EMAIL
 
 # lib imports
 from gae_html import cacheAndRender
@@ -26,7 +26,7 @@ from sendgrid.helpers import mail as sgmail
 
 class BaseController(webapp2.RequestHandler):
 
-    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(TEMPLATES_PATH))
+    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(VIEW_PATH))
 
     def dispatch(self):
         # get a session store for this request
@@ -248,7 +248,7 @@ def withUser(action):
         if controller.user:
             return action(*args, **kwargs)
         else:
-            url = "/login"
+            url = "/user/login"
             return controller.redirect(url)
     return decorate
 
