@@ -17,7 +17,7 @@
     </header>
 
     <section>
-        <h2>Quota Error</h2>
+        <h2 id="error-name">Quota Error</h2>
         <p>You are seeing this page because the site has reached the limit of its allowed quota useage.</p>
     </section>
 
@@ -29,8 +29,5 @@
     </footer>
 
     <script src="/j/main.js"></script>
-    <script>
-        gaescaffold.ajax("POST", "/logerror", {"reason": "Quota"});
-    </script>
 </body>
 </html>

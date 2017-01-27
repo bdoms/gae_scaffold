@@ -4,7 +4,8 @@ gaescaffold.logout = function(e) {
     e.preventDefault();
     document.getElementById("logout-form").submit();
 };
-gaescaffold.logout_link = document.getElementById("logout");
+
+gaescaffold.logout_link = document.getElementById("logout-link");
 if (gaescaffold.logout_link) {
     gaescaffold.logout_link.addEventListener('click', gaescaffold.logout);
 }
@@ -37,6 +38,12 @@ gaescaffold.ajax = function(method, url, data, callback) {
         request.send();
     }
 };
+
+gaescaffold.error_name = document.getElementById("error-name");
+if (gaescaffold.error_name) {
+    var reason = gaescaffold.error_name.textContent || gaescaffold.error_name.innerText;
+    gaescaffold.ajax("POST", "/logerror", {"reason": reason});
+}
 
 gaescaffold.MONTHS = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"];
