@@ -226,7 +226,7 @@ class LoginController(BaseLoginController):
 class LogoutController(BaseController):
 
     @withUser
-    def get(self):
+    def post(self):
         self.session.clear()
         self.redirect("/")
 

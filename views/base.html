@@ -42,7 +42,10 @@
                 {% endif %}
                 <li><a href="/home">Home</a></li>
                 <li><a href="/user">Account Settings</a></li>
-                <li><a href="/user/logout">Log Out</a></li>
+                <li>
+                    <a id="logout" href="#">Log Out</a>
+                    <form id="logout-form" method="post" action="/user/logout"></form>
+                </li>
             {% else %}
                 <li><a href="/user/signup">Sign Up</a></li>
                 <li><a href="/user/login">Log In</a></li>

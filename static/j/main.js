@@ -1,5 +1,14 @@
 var gaescaffold = gaescaffold || {};
 
+gaescaffold.logout = function(e) {
+    e.preventDefault();
+    document.getElementById("logout-form").submit();
+};
+gaescaffold.logout_link = document.getElementById("logout");
+if (gaescaffold.logout_link) {
+    gaescaffold.logout_link.addEventListener('click', gaescaffold.logout);
+}
+
 gaescaffold.ajax = function(method, url, data, callback) {
     // compatible with IE7+, Firefox, Chrome, Opera, Safari
     var request = new XMLHttpRequest();

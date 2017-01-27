@@ -50,7 +50,7 @@ class BaseTestController(BaseTestCase):
             'password': user.password.encode('utf8')}, headers=HEADERS, extra_environ=ENVIRON)
 
     def logout(self):
-        response = self.app.get('/user/logout')
+        response = self.app.post('/user/logout')
         return response
 
 
@@ -612,6 +612,9 @@ class TestUser(BaseTestController):
 
     def test_logout(self):
         self.login()
+
+        # should not allow logging out via GET
+        assert self.app.get('/user/logout', status=405)
 
         response = self.logout()
         response = response.follow() # redirects to index page
