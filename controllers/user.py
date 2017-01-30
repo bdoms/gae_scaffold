@@ -17,7 +17,7 @@ class BaseLoginController(FormController):
         # reject a login attempt without a user agent or IP address
         if not ua or not ip:
             self.flash('error', 'Invalid client.')
-            return self.redisplay({}, {}, "/user/login")
+            return self.redirect("/user/login")
 
         auth = None
         if not new:
@@ -80,7 +80,7 @@ class AuthsController(FormController):
                 auth_key.delete()
                 self.flash('success', 'Access revoked.')
 
-        self.redirect('/user/auths')
+        self.redisplay()
 
 
 class EmailController(FormController):
@@ -109,7 +109,7 @@ class EmailController(FormController):
 
         if errors:
             del form_data["password"] # never send password back for security
-            self.redisplay(form_data, errors, "/user/email")
+            self.redisplay(form_data, errors)
         else:
             self.user.email = valid_data["email"]
             self.user.put()
@@ -140,7 +140,7 @@ class PasswordController(FormController):
         if errors:
             del form_data["password"]
             del form_data["new_password"]
-            self.redisplay(form_data, errors, "/user/password")
+            self.redisplay(form_data, errors)
         else:
             password_salt, hashed_password = model.User.changePassword(valid_data["new_password"])
             
@@ -179,7 +179,7 @@ class SignupController(BaseLoginController):
 
         if errors:
             del form_data["password"] # never send password back for security
-            self.redisplay(form_data, errors, "/user/signup")
+            self.redisplay(form_data, errors)
         else:
             password_salt, hashed_password = model.User.changePassword(valid_data["password"])
             del valid_data["password"]
@@ -218,7 +218,7 @@ class LoginController(BaseLoginController):
 
         if errors:
             del form_data["password"] # never send password back for security
-            self.redisplay(form_data, errors, "/user/login")
+            self.redisplay(form_data, errors)
         else:
             self.login(user)
 
@@ -245,22 +245,20 @@ class ForgotPasswordController(FormController):
         
         form_data, errors, valid_data = self.validate()
 
-        # for security, don't alert them if the user doesn't exist
-        user = None
-        if not errors:
+        if errors:
+            self.redisplay(form_data, errors)
+        else:
+            # for security, don't alert them if the user doesn't exist
             user = model.User.getByEmail(valid_data["email"])
             if user:
                 user = user.resetPassword()
                 self.deferEmail([user.email], "Reset Password", "reset_password.html",
                     key=user.key.urlsafe(), token=user.token)
 
-        if errors:
-            self.redisplay(form_data, errors, "/user/forgotpassword")
-        else:
             message = "Your password reset email has been sent. "
             message += "For security purposes it will expire in one hour."
             self.flash("success", message)
-            self.redirect("/user/forgotpassword")
+            self.redisplay()
 
 
 class ResetPasswordController(BaseLoginController):

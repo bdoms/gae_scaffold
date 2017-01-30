@@ -111,6 +111,17 @@ class BaseController(webapp2.RequestHandler):
         else:
             self.renderError(405)
 
+    def redisplay(self, form_data=None, errors=None, url=None):
+        """ redirects to the current page by default """
+        if form_data is not None:
+            self.session["form_data"] = form_data
+        if errors is not None:
+            self.session["errors"] = errors
+        if url:
+            self.redirect(url)
+        else:
+            self.redirect(self.request.path)
+
     # this overrides the base class for handling things like 500 errors
     def handle_exception(self, exception, debug):
         # log the error
@@ -238,13 +249,6 @@ class FormController(BaseController):
                 errors[name] = True
 
         return form_data, errors, valid_data
-
-    def redisplay(self, form_data, errors, url=None):
-        """ do not include a url if you don't want to redirect, e.g. from ajax """
-        self.session["form_data"] = form_data
-        self.session["errors"] = errors
-        if url:
-            self.redirect(url)
 
 
 def withUser(action):

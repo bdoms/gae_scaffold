@@ -33,10 +33,10 @@ class DevController(FormController):
                 else:
                     errors["exists"] = True
             if errors:
-                return self.redisplay(form_data, errors, "/dev")
+                return self.redisplay(form_data, errors)
 
         elif self.request.get("memcache"):
             # clear memcache
             memcache.flush_all()
 
-        self.redirect('/dev')
+        self.redisplay()
