@@ -23,6 +23,7 @@ ROUTES = [('/', index.IndexController),
           ('/dev', dev.DevController),
           #('/errors/(.*)', static.StaticController), # uncomment to test static error pages
           ('/logerror', error.LogErrorController),
+          ('/policyviolation', error.PolicyViolationController),
           ('/(.*)', error.ErrorController)
          ]
 

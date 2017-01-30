@@ -280,6 +280,7 @@ class TestForm(BaseMockController):
 
     class UnicodeMockRequest(object):
         method = "POST"
+        host_url = "http://localhost"
         def __init__(self, d):
             self.d = d
         def get(self, field):
@@ -426,6 +427,21 @@ class TestError(BaseTestController):
         assert messages[0].to == SUPPORT_EMAIL
         assert messages[0].subject == "Error Alert"
         assert "Error Message: Static Error Page: Default" in str(messages[0].html)
+
+    def test_policyViolation(self):
+        # csp violations are reported directly from browsers
+        logging.disable(logging.CRITICAL)
+        assert self.app.post('/policyviolation', 'CSP JSON', status=200)
+        logging.disable(logging.NOTSET)
+
+        # move mails out of the queue so we can test them
+        self.executeDeferred(name="mail")
+
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == 1
+        assert messages[0].to == SUPPORT_EMAIL
+        assert messages[0].subject == "Error Alert"
+        assert "Error Message: Content Security Policy Violation: CSP JSON" in str(messages[0].html)
 
 
 class TestIndex(BaseTestController):

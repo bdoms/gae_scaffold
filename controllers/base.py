@@ -78,8 +78,13 @@ class BaseController(webapp2.RequestHandler):
         # see https://code.google.com/p/googleappengine/issues/detail?id=7427
         # self.response.headers['Strict-Transport-Security'] = 'max-age=86400; includeSubDomains'
 
+        # this is purposefully strict by default
+        # you can change site-wide or add logic for different environments or actions as needed
         # see https://developers.google.com/web/fundamentals/security/csp/
-        self.response.headers['Content-Security-Policy'] = "default-src 'self'"
+        CSP = "default-src 'self'; form-action 'self'; "
+        CSP += "base-uri 'none'; frame-ancestors 'none'; plugin-types 'none';"
+        CSP += "report-uri " + self.request.host_url + "/policyviolation"
+        self.response.headers['Content-Security-Policy'] = CSP
 
         self.response.out.write(content)
 
