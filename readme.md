@@ -66,6 +66,7 @@ git reset $(git commit-tree HEAD^{tree} -m "Initial commit.")
  * Add an entry to `templates/sitemap.xml` for each page you want indexed by search engines
  * Modify `config/robots.template.txt` to disallow any pages you don't want crawled (on a per branch basis)
  * Enable and/or modify security features HSTS and CSP in `controllers/base.py`
+ * Handle version-based namespaces in `appengine_config.py`
  * Make tests in `tests/test_controllers.py` for new pages
  * Make tests in `tests/test_models.py` for new models
  * After updating production, clear memcache via `/admin` (or the GAE dashboard) in order to ensure that old pages aren't still cached
