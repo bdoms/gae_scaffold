@@ -4,7 +4,7 @@ from urllib import quote_plus
 
 from google.appengine.api import memcache, users
 
-from lib.gae_deploy import static, DEBUG
+from lib.gae_deploy import static, script, style, DEBUG
 
 TESTING = '(testbed)' in os.environ.get('SERVER_SOFTWARE', '')
 

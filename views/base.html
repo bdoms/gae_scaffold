@@ -24,7 +24,7 @@
     <link rel="shortcut icon" href="{{h.static('/i/favicon.png')}}" />
     <link rel="apple-touch-icon-precomposed" href="{{h.static('/i/favicon-152.png')}}">
 
-    <link rel="stylesheet" href="{{h.static('/c/main.css')}}" />
+    {{h.style('/c/main.css')}}
 </head>
 <body>
     <header>
@@ -69,7 +69,8 @@
         </ul>
     </footer>
 
-    <script src="{{h.static('/j/main.js')}}"></script>
+    {{h.script('/j/main.js')}}
+
     {% if not h.debug() %}
         {#
             include third-party scripts for tracking or advertising here

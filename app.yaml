@@ -1,5 +1,4 @@
-application: your-app-id
-version: 1
+service: default
 runtime: python27
 api_version: 1
 threadsafe: true

@@ -1,3 +1,5 @@
+project: your-app-id
+
 branches:
   default: develop
   files:
@@ -8,7 +10,8 @@ branches:
       _version: _branch
       robots: 'Disallow: /'
     master:
-      _version: 1
+      _promote: true
+      #_version: ""
       robots: |
         Disallow: /admin
         Sitemap: /sitemap.xml
