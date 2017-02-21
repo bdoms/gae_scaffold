@@ -5,7 +5,7 @@ import json
 import logging
 
 # app engine api imports
-from google.appengine.api import mail, memcache, users
+from google.appengine.api import app_identity, mail, memcache, users
 from google.appengine.ext import deferred
 
 # app engine included libraries imports
@@ -55,6 +55,11 @@ class BaseController(webapp2.RequestHandler):
     def session(self):
         # uses the default cookie key
         return self.session_store.get_session()
+
+    @webapp2.cached_property
+    def gcs_bucket(self):
+        # this needs to change if not using the default bucket
+        return app_identity.get_default_gcs_bucket_name()
 
     def flash(self, level, message):
         self.session["flash"] = {"level": level, "message": message}
@@ -289,4 +294,28 @@ def validateReferer(action):
         if not referer.startswith("http://" + controller.request.headers.get("host")):
             return controller.renderError(400)
         return action(*args, **kwargs)
+    return decorate
+
+
+# NOTE: because of how chaining of __init__ and private (double underscore) variables work with multiple inheritance
+#       (see http://stackoverflow.com/questions/8688114/python-multi-inheritance-init)
+#       the blobstore UploadHandler must come first. On the server (both dev and prod) everything works as expected,
+#       but webtest uses the first webapp platform it encounters, which is webapp 1 for the UploadHandler,
+#       (whereas the BaseController uses webapp2) and webapp 1 doesn't use the dispatch method
+#       which is why we have this custom second-level decorator defined to call it manually.
+def testDispatch(action):
+    class MockApp(object):
+        debug = True
+    def decorate(*args,  **kwargs):
+        if helpers.testing():
+            controller = args[0]
+            # this will go into an infinite loop of dispatching itself if we don't stop it
+            if hasattr(controller, 'dispatch_called'):
+                return action(*args, **kwargs)
+            else:
+                controller.app = MockApp()
+                controller.dispatch_called = True
+                controller.dispatch()
+        else:
+            return action(*args, **kwargs)
     return decorate

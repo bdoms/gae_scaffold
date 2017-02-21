@@ -19,3 +19,6 @@
 [submodule "lib/httpagentparser"]
 	path = lib/httpagentparser
 	url = https://github.com/shon/httpagentparser.git
+[submodule "lib/gcs"]
+	path = lib/gcs
+	url = https://github.com/GoogleCloudPlatform/appengine-gcs-client.git

@@ -1,11 +1,17 @@
 from datetime import datetime, timedelta
 
-from base import BaseController, FormController, withUser, withoutUser
+from google.appengine.api import images
+from google.appengine.ext import blobstore
+from google.appengine.ext.webapp import blobstore_handlers
 
+from base import BaseController, FormController, withUser, withoutUser, testDispatch
 import model
 
+import cloudstorage as gcs
 from gae_validators import validateRequiredString, validateEmail
 import httpagentparser
+
+IMAGE_TYPES = ["gif", "jpg", "jpeg", "png"]
 
 
 class BaseLoginController(FormController):
@@ -45,12 +51,58 @@ class BaseLoginController(FormController):
         self.redirect("/home")
 
 
-class IndexController(FormController):
+class IndexController(blobstore_handlers.BlobstoreUploadHandler, FormController):
 
+    # TODO: need a serving URL for non-image files and this should work in prod
+    #self.user.pic_url = 'https://' + self.gcs_bucket + '.storage.googleapis.com/' + rel_path
+
+    @testDispatch
     @withUser
     def get(self):
 
         self.renderTemplate('user/index.html')
+
+    @testDispatch
+    @withUser
+    def post(self):
+
+        if self.request.get('delete'):
+            if self.user.pic_gcs:
+                path = self.user.pic_gcs
+                if path.startswith('/gs/'):
+                    path = path[3:]
+                gcs.delete(path)
+            if self.user.pic_blob:
+                blobstore.delete(self.user.pic_blob)
+            if self.user.pic_url:
+                images.delete_serving_url(self.user.pic_url)
+            
+            self.user.pic_gcs = None
+            self.user.pic_blob = None
+            self.user.pic_url = None
+        else:
+            errors = {}
+            uploads = self.get_uploads()
+            for upload in uploads:
+                # enforce file type based on extension
+                name, ext = upload.filename.rsplit(".", 1)
+                ext = ext.lower()
+                if ext not in IMAGE_TYPES:
+                    upload.delete()
+                    errors = {'type': True}
+                    continue
+
+                # note that this serving URL supports size and crop query params
+                self.user.pic_gcs = upload.gs_object_name
+                self.user.pic_blob = upload.key()
+                self.user.pic_url = images.get_serving_url(upload, secure_url=True)
+        
+            if errors:
+                return self.redisplay({}, errors)
+
+        self.user.put()
+        self.uncache(self.user.slug)
+        self.redisplay()
 
 
 class AuthsController(FormController):
@@ -113,7 +165,7 @@ class EmailController(FormController):
         else:
             self.user.email = valid_data["email"]
             self.user.put()
-            self.uncache(self.user.key.urlsafe())
+            self.uncache(self.user.slug)
 
             self.flash("success", "Email changed successfully.")
             self.redirect("/user")
@@ -146,7 +198,7 @@ class PasswordController(FormController):
             
             self.user.populate(password_salt=password_salt, hashed_password=hashed_password)
             self.user.put()
-            self.uncache(self.user.key.urlsafe())
+            self.uncache(self.user.slug)
 
             self.flash("success", "Password changed successfully.")
             self.redirect("/user")
@@ -253,7 +305,7 @@ class ForgotPasswordController(FormController):
             if user:
                 user = user.resetPassword()
                 self.deferEmail([user.email], "Reset Password", "reset_password.html",
-                    key=user.key.urlsafe(), token=user.token)
+                    key=user.slug, token=user.token)
 
             message = "Your password reset email has been sent. "
             message += "For security purposes it will expire in one hour."

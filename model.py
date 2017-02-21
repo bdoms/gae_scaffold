@@ -17,8 +17,15 @@ class User(ndb.Model):
     hashed_password = ndb.StringProperty(required=True)
     token = ndb.StringProperty()
     token_date = ndb.DateTimeProperty()
+    pic_gcs = ndb.StringProperty()
+    pic_blob = ndb.BlobKeyProperty()
+    pic_url = ndb.StringProperty()
     is_admin = ndb.BooleanProperty(default=False)
     created_date = ndb.DateTimeProperty(auto_now_add=True)
+
+    @property
+    def slug(self):
+        return self.key.urlsafe()
 
     @property
     def auths(self):
@@ -46,7 +53,7 @@ class User(ndb.Model):
         self.token = base64.urlsafe_b64encode(os.urandom(16)).replace('=', '')
         self.token_date = datetime.utcnow()
         self.put()
-        uncache(self.key.urlsafe())
+        uncache(self.slug)
         return self
 
 

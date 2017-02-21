@@ -3,7 +3,7 @@
 import webapp2
 
 # URL routes
-from controllers import admin, dev, error, home, index, sitemap, static, user
+from controllers import admin, api, dev, error, home, index, sitemap, static, user
 
 ROUTES = [('/', index.IndexController),
           ('/home', home.HomeController),
@@ -20,6 +20,7 @@ ROUTES = [('/', index.IndexController),
           ('/privacy', static.StaticController),
           ('/sitemap.xml', sitemap.SitemapController),
           ('/admin', admin.AdminController),
+          ('/api/upload', api.UploadController),
           ('/dev', dev.DevController),
           #('/errors/(.*)', static.StaticController), # uncomment to test static error pages
           ('/logerror', error.LogErrorController),

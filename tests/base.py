@@ -21,8 +21,10 @@ class BaseTestCase(unittest.TestCase):
         # Create a consistency policy that will simulate the High Replication consistency model.
         self.policy = datastore_stub_util.PseudoRandomHRConsistencyPolicy(probability=0)
         # Next, declare which service stubs you want to use.
+        self.testbed.init_app_identity_stub()
         self.testbed.init_blobstore_stub()
         self.testbed.init_datastore_v3_stub()
+        self.testbed.init_images_stub()
         self.testbed.init_memcache_stub()
         self.testbed.init_user_stub()
         # need to include the path where queue.yaml exists so that the stub knows about named queues

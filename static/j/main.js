@@ -39,6 +39,41 @@ gaescaffold.ajax = function(method, url, data, callback) {
     }
 };
 
+gaescaffold.upload = function(e) {
+    // at the time of submit swaps out a regular url for a blobstore one, then re-submits
+    var form = this;
+    if (form.getAttribute("data-ready")) {
+        return;
+    }
+
+    e.preventDefault();
+    var inputs = form.getElementsByTagName('input');
+    for (var i=0; i < inputs.length; i++) {
+        var input = inputs[i];
+        if (input.type == 'submit') {
+            if (input.disabled) {
+                return;
+            }
+            else {
+                input.disabled = true;
+                break;
+            }
+        }
+    }
+
+    gaescaffold.ajax('POST', '/api/upload', {'url': form.action}, function(response) {
+        var response_json = JSON.parse(response);
+        form.action = response_json.url;
+        form.setAttribute("data-ready", true);
+        form.submit();
+    });
+};
+
+gaescaffold.upload_forms = document.getElementsByClassName("upload-form");
+for (var i=0; i < gaescaffold.upload_forms.length; i++) {
+    gaescaffold.upload_forms[i].addEventListener('submit', gaescaffold.upload);
+}
+
 gaescaffold.error_name = document.getElementById("error-name");
 if (gaescaffold.error_name) {
     var reason = gaescaffold.error_name.textContent || gaescaffold.error_name.innerText;

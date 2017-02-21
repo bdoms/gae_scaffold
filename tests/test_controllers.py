@@ -117,6 +117,10 @@ class TestBase(BaseMockController):
         self.controller.dispatch()
         assert self.controller.session.get("test key") == "test value" + UCHAR
 
+    def test_gcs_bucket(self):
+        bucket = self.controller.gcs_bucket
+        assert bucket == "app_default_bucket"
+
     def test_flash(self):
         self.mockSessions()
         self.controller.flash("info", "test flash" + UCHAR)
@@ -493,6 +497,18 @@ class TestUser(BaseTestController):
 
         response = self.app.get('/user')
         assert '<h2>Account Settings</h2>' in response
+        assert 'alt="Profile Pic"' not in response
+
+        # test upload - upload_files doesn't actually seem to work, so we test what we can
+        upload_files = [("profile_pic", "profile.jpg", "file content", "")]
+        response = self.app.post('/user', upload_files=upload_files)
+        response = response.follow()
+        assert '<h2>Account Settings</h2>' in response
+
+        # test delete
+        response = self.app.post('/user', {'delete': '1'})
+        response = response.follow()
+        assert '<h2>Account Settings</h2>' in response
 
     def test_auths(self):
         self.login()
@@ -747,6 +763,18 @@ class TestAdmin(BaseTestController):
 
         response = self.app.get('/admin')
         assert '<h2>Admin</h2>' in response
+
+
+class TestAPI(BaseTestController):
+
+    def setUp(self):
+        super(TestAPI, self).setUp()
+        self.createUser()
+        self.login()
+
+    def test_upload(self):
+        response = self.app.post('/api/upload', {'url': '/user'})
+        assert 'url' in response
 
 
 class TestDev(BaseTestController):
