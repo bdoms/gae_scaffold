@@ -103,7 +103,7 @@ Use the `--list` (`-l`) option to specify a predefined list of branches to deplo
  * production
    * master
 
-Note that you must have already created an application on Google App Engine with the matching ID in `app.yaml` for deploying to work.
+Note that you must have already created an application on Google App Engine with the matching ID in `config/deploy.yaml` for deploying to work.
 This then creates a live version of your application at http://your-app-id.appspot.com/
 
 See the readme in `lib/gae_deploy` for more details about deploying.

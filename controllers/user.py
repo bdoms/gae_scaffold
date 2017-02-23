@@ -279,6 +279,14 @@ class LogoutController(BaseController):
 
     @withUser
     def post(self):
+        str_key = self.session['auth_key']
+        try:
+            auth_key = model.ndb.Key(urlsafe=str_key)
+        except:
+            pass
+        else:
+            self.uncache(str_key)
+            auth_key.delete()
         self.session.clear()
         self.redirect("/")
 
