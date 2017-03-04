@@ -8,7 +8,7 @@ from base import BaseController, FormController, withUser, withoutUser, testDisp
 import model
 
 import cloudstorage as gcs
-from gae_validators import validateRequiredString, validateEmail
+from gae_validators import validateRequiredString, validateRequiredEmail
 import httpagentparser
 
 IMAGE_TYPES = ["gif", "jpg", "jpeg", "png"]
@@ -137,7 +137,7 @@ class AuthsController(FormController):
 
 class EmailController(FormController):
 
-    FIELDS = {"email": validateEmail, "password": validateRequiredString}
+    FIELDS = {"email": validateRequiredEmail, "password": validateRequiredString}
 
     @withUser
     def get(self):
@@ -209,7 +209,7 @@ class SignupController(BaseLoginController):
     FIELDS = {
         "first_name": validateRequiredString,
         "last_name": validateRequiredString,
-        "email": validateEmail,
+        "email": validateRequiredEmail,
         "password": validateRequiredString
     }
 
@@ -243,7 +243,7 @@ class SignupController(BaseLoginController):
 
 class LoginController(BaseLoginController):
 
-    FIELDS = {"email": validateEmail, "password": validateRequiredString}
+    FIELDS = {"email": validateRequiredEmail, "password": validateRequiredString}
 
     @withoutUser
     def get(self):
@@ -293,7 +293,7 @@ class LogoutController(BaseController):
 
 class ForgotPasswordController(FormController):
 
-    FIELDS = {"email": validateEmail}
+    FIELDS = {"email": validateRequiredEmail}
 
     @withoutUser
     def get(self):
