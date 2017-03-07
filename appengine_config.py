@@ -3,13 +3,13 @@ import os
 from google.appengine.api import namespace_manager
 from google.appengine.ext import vendor
 
-from config.constants import LIB_PATH, PHC_PATH, SENDGRID_PATH, HAP_PATH, GCS_PATH
+from config.constants import LIB_PATH
 
 vendor.add(LIB_PATH)
-vendor.add(PHC_PATH)
-vendor.add(SENDGRID_PATH)
-vendor.add(HAP_PATH)
-vendor.add(GCS_PATH)
+vendor.add(os.path.join(LIB_PATH, 'python-http-client'))
+vendor.add(os.path.join(LIB_PATH, 'sendgrid-python'))
+vendor.add(os.path.join(LIB_PATH, 'httpagentparser'))
+vendor.add(os.path.join(LIB_PATH, 'gcs', 'python', 'src'))
 
 # uncomment this to make each version use its own namespace (which segregates the datastore)
 # called only if the current namespace is not set

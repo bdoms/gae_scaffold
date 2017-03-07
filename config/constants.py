@@ -3,10 +3,6 @@ import os
 APP_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 VIEW_PATH = os.path.join(APP_PATH, 'views')
 LIB_PATH = os.path.join(APP_PATH, 'lib')
-PHC_PATH = os.path.join(LIB_PATH, 'python-http-client')
-SENDGRID_PATH = os.path.join(LIB_PATH, 'sendgrid-python')
-HAP_PATH = os.path.join(LIB_PATH, 'httpagentparser')
-GCS_PATH = os.path.join(LIB_PATH, 'gcs', 'python', 'src')
 
 # replace this with your own SendGrid API Key
 # without it you'll be limited to the App Engine quota (https://cloud.google.com/appengine/docs/quotas#Mail)
