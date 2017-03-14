@@ -73,15 +73,18 @@ class Auth(ndb.Model):
 
 # model helper functions
 def getByKey(str_key):
-    entity = memcache.get(str_key)
-    if not entity:
-        try:
-            key = ndb.Key(urlsafe=str_key)
-        except:
-            pass
-        else:
-            entity = key.get()
-            memcache.add(str_key, entity)
+    entity = None
+    if str_key:
+        entity = memcache.get(str_key)
+        if not entity:
+            try:
+                key = ndb.Key(urlsafe=str_key)
+            except:
+                pass
+            else:
+                entity = key.get()
+                if entity:
+                    memcache.add(str_key, entity)
     return entity
 
 def cache(key, function, expires=86400):
