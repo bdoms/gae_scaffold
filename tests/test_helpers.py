@@ -14,6 +14,9 @@ class TestHelpers(BaseTestCase):
     def test_testing(self):
         assert self.helpers.testing()
 
+    def test_host(self):
+        assert self.helpers.host() == 'https://testbed.example.com'
+
     def test_natural_list(self):
         result = self.helpers.natural_list([])
         assert result == ""

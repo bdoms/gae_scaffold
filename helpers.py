@@ -16,6 +16,13 @@ def debug():
 def testing():
     return TESTING
 
+def host():
+    host = os.environ.get('HTTP_ORIGIN')
+    if not host:
+        protocol = os.environ.get('HTTPS') == 'off' and 'http://' or 'https://'
+        host = protocol + os.environ['HTTP_HOST']
+    return host
+
 def natural_list(string_list):
     # takes a list of strings and renders them like a natural language list
     list_len = len(string_list)
