@@ -42,7 +42,7 @@ class TestHelpers(BaseTestCase):
         assert result == "&quot;test this&quot;"
 
     def test_strip_html(self):
-        result = self.helpers.strip_html("<script>alert('attack');</script>")
+        result = self.helpers.strip_html("\n\n<script>alert('attack');</script>\n\n")
         assert result == "alert('attack');"
 
     def test_limit(self):

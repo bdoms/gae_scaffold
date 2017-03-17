@@ -43,7 +43,7 @@ def attr_escape(s):
     return s.replace('"', '&quot;')
 
 def strip_html(string):
-    return re.sub(r'<[^<]*?/?>', '', string)
+    return re.sub(r'<[^<]*?/?>', '', string).strip()
 
 def limit(string, max_len):
     if len(string) > max_len:
