@@ -243,41 +243,59 @@ class TestBase(BaseMockController):
         assert self.controller.user.key == user.key
 
     def test_sendEmail(self):
-        to = "test" + UCHAR + "@example.com"
-        subject = "Subject" + UCHAR
-        html = "<p>Test body</p>"
+        to = 'test' + UCHAR + '@example.com'
+        subject = 'Subject' + UCHAR
+        html = '<p>Test body' + UCHAR + '</p>'
         self.controller.sendEmail([to], subject, html)
 
         messages = self.mail_stub.get_sent_messages()
         assert len(messages) == 1
         assert messages[0].to == to
         assert messages[0].subject == subject
-        assert html in str(messages[0].html)
-        assert "Test body" in str(messages[0].body)
-        assert "<p>" not in str(messages[0].body)
-        assert not hasattr(messages[0], "reply_to")
+        # having a unicode char triggers base64 encoding
+        assert html.encode('utf-8').encode('base64') in str(messages[0].html)
+        assert ('Test body' + UCHAR).encode('utf-8').encode('base64') in str(messages[0].body)
+        assert not hasattr(messages[0], 'reply_to')
 
-        reply_to = "test_reply" + UCHAR + "@example.com"
+        reply_to = 'test_reply' + UCHAR + '@example.com'
         self.controller.sendEmail([to], subject, html, reply_to)
         messages = self.mail_stub.get_sent_messages()
         assert len(messages) == 2
         assert messages[1].reply_to == reply_to
 
+    def test_fanoutEmail(self):
+        to = 'test' + UCHAR + '@example.com'
+        subject = 'Subject' + UCHAR
+        html = '<p>test email template' + UCHAR + '</p>'
+        count = 10
+        self.controller.fanoutEmail([to]*count, subject, html)
+
+        # move mails out of the queue so we can test them
+        self.executeDeferred(name='mail')
+
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == count
+        assert messages[0].to == to
+        assert messages[0].subject == subject
+        # having a unicode char triggers base64 encoding
+        assert html.encode('utf-8').encode('base64') in str(messages[0].html)
+
     def test_deferEmail(self):
-        to = "test" + UCHAR + "@example.com"
-        subject = "Subject" + UCHAR
-        html = "<p>test email template</p>"
+        to = 'test' + UCHAR + '@example.com'
+        subject = 'Subject' + UCHAR
+        html = '<p>test email template' + UCHAR + '</p>' 
         template = jinja2.Template(html)
         self.controller.deferEmail([to], subject, template)
 
         # move mails out of the queue so we can test them
-        self.executeDeferred(name="mail")
+        self.executeDeferred(name='mail')
 
         messages = self.mail_stub.get_sent_messages()
         assert len(messages) == 1
         assert messages[0].to == to
         assert messages[0].subject == subject
-        assert html in str(messages[0].html)
+        # having a unicode char triggers base64 encoding
+        assert html.encode('utf-8').encode('base64') in str(messages[0].html)
 
 
 class TestForm(BaseMockController):

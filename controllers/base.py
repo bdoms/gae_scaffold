@@ -202,10 +202,10 @@ class BaseController(webapp2.RequestHandler):
         else:
             for to_email in to:
                 if reply_to:
-                    mail.send_mail(sender=SENDER_EMAIL, to=to, subject=subject, body=body, html=html,
+                    mail.send_mail(sender=SENDER_EMAIL, to=to_email, subject=subject, body=body, html=html,
                         reply_to=reply_to)
                 else:
-                    mail.send_mail(sender=SENDER_EMAIL, to=to, subject=subject, body=body, html=html)
+                    mail.send_mail(sender=SENDER_EMAIL, to=to_email, subject=subject, body=body, html=html)
 
     @classmethod
     def fanoutEmail(cls, to, subject, body, reply_to=None):
