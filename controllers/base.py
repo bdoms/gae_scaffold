@@ -3,6 +3,7 @@
 # python imports
 import json
 import logging
+import urllib2
 
 # app engine api imports
 from google.appengine.api import app_identity, mail, memcache, users
@@ -181,8 +182,9 @@ class BaseController(webapp2.RequestHandler):
             message = sgmail.Mail()
             message.set_from(sgmail.Email(SENDER_EMAIL))
             message.set_subject(subject)
-            message.add_content(sgmail.Content('text/html', html))
+            # NOTE that plain must come first
             message.add_content(sgmail.Content('text/plain', body))
+            message.add_content(sgmail.Content('text/html', html))
 
             personalization = sgmail.Personalization()
             for to_email in to:
@@ -198,7 +200,13 @@ class BaseController(webapp2.RequestHandler):
                 message.set_mail_settings(mail_settings)
 
             api = sendgrid.SendGridAPIClient(apikey=SENDGRID_API_KEY)
-            response = api.client.mail.send.post(request_body=message.get())
+            
+            # an error here logs the status code but not the message
+            # which is way more helpful, so we get it manually
+            try:
+                response = api.client.mail.send.post(request_body=message.get())
+            except urllib2.HTTPError, e:
+                logging.error(e.read())
         else:
             for to_email in to:
                 if reply_to:
