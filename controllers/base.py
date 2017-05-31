@@ -88,7 +88,7 @@ class BaseController(webapp2.RequestHandler):
         # you can change site-wide or add logic for different environments or actions as needed
         # see https://developers.google.com/web/fundamentals/security/csp/
         CSP = "default-src 'self'; form-action 'self'; "
-        CSP += "base-uri 'none'; frame-ancestors 'none'; plugin-types 'none';"
+        CSP += "base-uri 'none'; frame-ancestors 'none'; object-src 'none';"
         CSP += "report-uri " + self.request.host_url + "/policyviolation"
         self.response.headers['Content-Security-Policy'] = CSP
 
