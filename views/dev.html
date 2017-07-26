@@ -5,6 +5,12 @@
 
 <p><a href="{{logout_url}}">Log Out</a></p>
 
+<h3>Environment</h3>
+
+<p>Namespace: {{namespace}}</p>
+
+<h3>Actions</h3>
+
 <form action="" method="post">
     <input type="hidden" name="make_admin" value="1"/>
 
@@ -12,17 +18,39 @@
         <p class="error">There is no user associated with that email address.</p>
     {% endif %}
 
-    <label for="email">Email</label>
-    <input type="email" name="email" id="email" required value="{{form.get('email', '')}}"/>
-    <input type="submit" value="Make User an Admin"/>
-    {% if errors.get('email') %}
-        <span class="error">Please enter a valid email.</span>
-    {% endif %}
+    <p>
+        <label for="email">Email</label>
+        <input type="email" name="email" id="email" required value="{{form.get('email', '')}}"/>
+        <input type="submit" value="Make User an Admin"/>
+        {% if errors.get('email') %}
+            <span class="error">Please enter a valid email.</span>
+        {% endif %}
+    </p>
 </form>
 
 <form action="" method="post">
     <input type="hidden" name="memcache" value="1"/>
-    <input type="submit" value="Clear Memcache"/>
+    <p>
+        <input type="submit" value="Clear Memcache"/>
+    </p>
 </form>
+
+<form action="" method="post">
+    <input type="hidden" name="migrate" value="1"/>
+    <p>
+        <input type="submit" value="Run Migrations"/>
+    </p>
+</form>
+
+{% if h.debug() %}
+    <h3>Development Only</h3>
+
+    <form action="" method="post">
+        <input type="hidden" name="reset" value="1"/>
+        <p>
+            <input type="submit" value="Reset Data"/>
+        </p>
+    </form>
+{% endif %}
 
 {% endblock %}
