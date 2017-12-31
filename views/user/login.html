@@ -24,7 +24,13 @@
             <span class="error">Please enter a valid password.</span>
         {% endif %}
     </p>
-    <input type="submit" value="Log In" />
+    <p>
+        <label>
+            <input type="checkbox" name="remember" {{form.get('remember', '') and 'checked' or ''}}>
+            Remember Me
+        </label>
+    </p>
+    <p><input type="submit" value="Log In" /></p>
 </form>
 
 {% endblock %}

@@ -8,15 +8,16 @@ from base import BaseController, FormController, withUser, withoutUser, testDisp
 import model
 
 import cloudstorage as gcs
-from gae_validators import validateRequiredString, validateRequiredEmail
+from gae_validators import validateRequiredString, validateRequiredEmail, validateBool
 import httpagentparser
 
 IMAGE_TYPES = ["gif", "jpg", "jpeg", "png"]
+SESSION_MAX_AGE = 86400 * 14 # two weeks in seconds
 
 
 class BaseLoginController(FormController):
 
-    def login(self, user, new=False):
+    def login(self, user, new=False, remember=False):
         ua = self.request.headers.get('User-Agent', '')
         ip = self.request.remote_addr or ''
 
@@ -46,6 +47,14 @@ class BaseLoginController(FormController):
                 device = parsed['dist']['name']
             auth = model.Auth(user_agent=ua, os=os, browser=browser, device=device, ip=ip, parent=user.key)
             auth.put()
+
+        cookie_args = self.session_store.config['cookie_args']
+        if remember:
+            cookie_args['max_age'] = SESSION_MAX_AGE
+        else:
+            # this may seem redundant but the other setting can persist so we must explicitly set this
+            cookie_args['max_age'] = None
+        self.session.setdefault('cookie_args', cookie_args)
 
         self.session['auth_key'] = auth.key.urlsafe()
         self.redirect("/home")
@@ -243,7 +252,7 @@ class SignupController(BaseLoginController):
 
 class LoginController(BaseLoginController):
 
-    FIELDS = {"email": validateRequiredEmail, "password": validateRequiredString}
+    FIELDS = {"email": validateRequiredEmail, "password": validateRequiredString, "remember": validateBool}
 
     @withoutUser
     def get(self):
@@ -272,7 +281,7 @@ class LoginController(BaseLoginController):
             del form_data["password"] # never send password back for security
             self.redisplay(form_data, errors)
         else:
-            self.login(user)
+            self.login(user, remember=valid_data["remember"])
 
 
 class LogoutController(BaseController):
