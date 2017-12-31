@@ -52,24 +52,26 @@ git reset $(git commit-tree HEAD^{tree} -m "Initial commit.")
 
 ### Mandatory Modifications
 
- * Generate the `secret_key` variable in `website.py` and the `PASSWORD_PEPPER` in `config/constants.py` for security
- * Replace `SENDER_EMAIL` in `config/constants.py` with a [valid email address](https://developers.google.com/appengine/docs/python/mail/sendingmail)
- * Replace `SUPPORT_EMAIL` in `config/constants.py` with the email address where you would like to receive support-related messages, such as error alerts
+ * Generate values for local development env variables in `config/constants.py`
+ * `cp config/vars_example.yaml config/vars.yaml` and then generate values for production in the new file
+ * In both cases:
+   * Replace `SENDER_EMAIL` with a [valid email address](https://developers.google.com/appengine/docs/python/mail/sendingmail)
+   * Replace `SUPPORT_EMAIL` with the email address where you would like to receive support-related messages, such as error alerts
  * Replace `your-app-id` in `config/deploy.yaml` to deploy the application
- * Replace `YOU@YOUR_DOMAIN.com` in `templates/terms.html` for DMCA compliance
+ * Replace `YOU@YOUR_DOMAIN.com` in `views/static/terms.html` for DMCA compliance
  * A sample Terms of Service and Privacy Policy have been provided as examples, but you are solely responsible for their content and how they apply to your site
 
 
 ### Going Forward
 
  * Escape any untrusted user content you display in templates by using the `|e` filter
- * Add an entry to `templates/sitemap.xml` for each page you want indexed by search engines
+ * Add an entry to `views/sitemap.xml` for each page you want indexed by search engines
  * Modify `config/robots.template.txt` to disallow any pages you don't want crawled (on a per branch basis)
  * Enable and/or modify security features HSTS and CSP in `controllers/base.py`
  * Handle version-based namespaces in `appengine_config.py`
  * Make tests in `tests/test_controllers.py` for new pages
  * Make tests in `tests/test_models.py` for new models
- * After updating production, clear memcache via `/admin` (or the GAE dashboard) in order to ensure that old pages aren't still cached
+ * After updating production, clear memcache via `/dev` (or the GAE dashboard) in order to ensure that old pages aren't still cached
 
 
 ### Common Commands

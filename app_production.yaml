@@ -1,0 +1,65 @@
+service: default
+runtime: python27
+api_version: 1
+threadsafe: true
+
+includes:
+- config/vars.yaml
+
+builtins:
+- deferred: on
+
+default_expiration: "1000d"
+
+libraries:
+- name: webapp2
+  version: latest
+- name: jinja2
+  version: latest
+
+handlers:
+- url: /c
+  static_dir: static/c
+- url: /i
+  static_dir: static/i
+- url: /j
+  static_dir: static/j
+- url: /favicon.ico
+  static_files: static/i/favicon.png
+  upload: static/i/favicon.png
+- url: /robots.txt
+  static_files: static/robots.txt
+  upload: static/robots.txt
+
+- url: /(dev|job).*
+  script: website.app
+  login: admin
+  secure: always
+
+- url: /.*
+  script: website.app
+  secure: always
+
+error_handlers:
+- file: views/static/errors/default.html
+
+- error_code: dos_api_denial
+  file: views/static/errors/dos.html
+
+- error_code: over_quota
+  file: views/static/errors/quota.html
+
+- error_code: timeout
+  file: views/static/errors/timeout.html
+
+skip_files:
+- ^(.*/)?.*\.py[co]$
+- ^(.*/)?\..*$
+- ^(.*/)?deploy.yaml$
+- ^config/.*\.template\..*$
+- ^tests/.*$
+- ^(.*/)?readme.*$
+- ^lib/gae_deploy/lib/.*$
+- ^lib/(gae_html|gae_validators)/test\.py$
+- ^lib/(sendgrid-python|python-http-client)/(examples|test)/.*$
+- ^lib/webtest/.*$

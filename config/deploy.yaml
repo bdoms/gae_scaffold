@@ -16,6 +16,9 @@ branches:
         Disallow: /admin
         Sitemap: /sitemap.xml
 
+services:
+  - app_production
+
 branch_lists:
   production:
   - master

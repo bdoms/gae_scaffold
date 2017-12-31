@@ -1,0 +1,6 @@
+env_variables:
+  PASSWORD_PEPPER: replace with the output from os.urandom(64).encode("base64")
+  SESSION_KEY: replace with the output from os.urandom(64).encode("base64")
+  SENDGRID_API_KEY:
+  SENDER_EMAIL: replace.sender@yourdomain.com
+  SUPPORT_EMAIL: replace.support@yourdomain.com
