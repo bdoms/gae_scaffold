@@ -69,6 +69,10 @@ class DevController(FormController):
                     model.ndb.delete_multi(entities)
 
             # add any fixtures needed for development here
+            password_salt, hashed_password = model.User.changePassword('test')
+            user = model.User(first_name='Test', last_name='Testerson', email='test@test.com',
+                password_salt=password_salt, hashed_password=hashed_password)
+            user.put()
 
             # auto signout since the IDs and keys have all changed
             self.session.clear()
