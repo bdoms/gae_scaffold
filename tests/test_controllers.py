@@ -804,3 +804,10 @@ class TestDev(BaseTestController):
         # test clearing memcache out
         response = self.app.post('/dev', {"memcache": "1"})
         assert response.status_int == 302
+
+
+class TestJob(BaseTestController):
+
+    def test_job(self):
+        response = self.app.get('/job/auths')
+        assert 'OK' in response

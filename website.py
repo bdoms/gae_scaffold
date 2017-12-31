@@ -6,7 +6,7 @@ import webapp2
 from config.constants import SESSION_KEY
 
 # URL routes
-from controllers import admin, api, dev, error, home, index, sitemap, static, user
+from controllers import admin, api, dev, error, home, index, job, sitemap, static, user
 
 ROUTES = [('/', index.IndexController),
           ('/home', home.HomeController),
@@ -25,6 +25,7 @@ ROUTES = [('/', index.IndexController),
           ('/admin', admin.AdminController),
           ('/api/upload', api.UploadController),
           ('/dev', dev.DevController),
+          ('/job/auths', job.AuthsController),
           #('/errors/(.*)', static.StaticController), # uncomment to test static error pages
           ('/logerror', error.LogErrorController),
           ('/policyviolation', error.PolicyViolationController),

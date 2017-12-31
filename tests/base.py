@@ -46,7 +46,7 @@ class BaseTestCase(unittest.TestCase):
         while tasks:
             for task in tasks:
                 (func, args, opts) = pickle.loads(base64.b64decode(task["body"]))
-                func(*args)
+                func(*args, **opts)
             tasks = self.task_stub.GetTasks(name)
             self.task_stub.FlushQueue(name)
 

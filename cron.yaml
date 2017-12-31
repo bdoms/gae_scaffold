@@ -1,0 +1,6 @@
+cron:
+
+- description: remove old auths
+  url: /job/auths
+  schedule: every day 05:00
+  timezone: America/New_York
