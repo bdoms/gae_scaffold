@@ -27,11 +27,8 @@ handlers:
 - url: /robots.txt
   static_files: static/robots.txt
   upload: static/robots.txt
-- url: /humans.txt
-  static_files: static/humans.txt
-  upload: static/humans.txt
 
-- url: /dev.*
+- url: /(dev|job).*
   script: website.app
   login: admin
 
