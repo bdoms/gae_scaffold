@@ -17,7 +17,7 @@ from webapp2_extras import sessions
 # local imports
 import helpers
 import model
-from config.constants import VIEW_PATH, SENDGRID_API_KEY, SENDER_EMAIL, SUPPORT_EMAIL
+from config.constants import VIEWS_PATH, SENDGRID_API_KEY, SENDER_EMAIL, SUPPORT_EMAIL
 
 # lib imports
 from gae_html import cacheAndRender
@@ -27,7 +27,7 @@ from sendgrid.helpers import mail as sgmail
 
 class BaseController(webapp2.RequestHandler):
 
-    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(VIEW_PATH))
+    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(VIEWS_PATH))
 
     def dispatch(self):
         # get a session store for this request
@@ -178,10 +178,10 @@ class BaseController(webapp2.RequestHandler):
     def sendEmail(cls, to, subject, html, reply_to=None):
         body = helpers.strip_html(html)
 
-        if SENDGRID_API_KEY:
+        if SENDGRID_API_KEY and not helpers.testing():
             message = sgmail.Mail()
-            message.set_from(sgmail.Email(SENDER_EMAIL))
-            message.set_subject(subject)
+            message.from_email = sgmail.Email(SENDER_EMAIL)
+            message.subject = subject
             # NOTE that plain must come first
             message.add_content(sgmail.Content('text/plain', body))
             message.add_content(sgmail.Content('text/html', html))
@@ -192,12 +192,12 @@ class BaseController(webapp2.RequestHandler):
             message.add_personalization(personalization)
 
             if reply_to:
-                message.set_reply_to(sgmail.Email(reply_to))
+                message.reply_to(sgmail.Email(reply_to))
 
             if helpers.debug():
                 mail_settings = sgmail.MailSettings()
-                mail_settings.set_sandbox_mode(sgmail.SandBoxMode(True))
-                message.set_mail_settings(mail_settings)
+                mail_settings.sandbox_mode = sgmail.SandBoxMode(True)
+                message.mail_settings = mail_settings
 
             api = sendgrid.SendGridAPIClient(apikey=SENDGRID_API_KEY)
             
