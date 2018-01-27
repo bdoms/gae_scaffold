@@ -29,6 +29,9 @@ class BaseController(webapp2.RequestHandler):
 
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(VIEWS_PATH))
 
+    # include global template variables that don't change across requests here
+    jinja_env.globals.update({'h': helpers})
+
     def dispatch(self):
         # get a session store for this request
         self.session_store = sessions.get_store(request=self.request)
@@ -68,7 +71,6 @@ class BaseController(webapp2.RequestHandler):
     def compileTemplate(self, filename, **kwargs):
         template = self.jinja_env.get_template(filename)
         # add some standard variables
-        kwargs["h"] = helpers
         kwargs["user"] = user = self.user
         kwargs["is_admin"] = user and user.is_admin
         kwargs["is_dev"] = users.is_current_user_admin()
