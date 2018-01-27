@@ -164,7 +164,10 @@ class EmailController(FormController):
 
         # extra validation to make sure that email address isn't already in use
         if not errors:
-            user = model.User.getByEmail(valid_data["email"])
+            # note that emails are supposed to be case sensitive according to RFC 5321
+            # however in practice users consistenly expect them to be case insensitive
+            email = valid_data["email"].lower()
+            user = model.User.getByEmail(email)
             if user:
                 errors["exists"] = True
 
@@ -172,7 +175,7 @@ class EmailController(FormController):
             del form_data["password"] # never send password back for security
             self.redisplay(form_data, errors)
         else:
-            self.user.email = valid_data["email"]
+            self.user.email = email
             self.user.put()
             self.uncache(self.user.slug)
 
@@ -234,6 +237,7 @@ class SignupController(BaseLoginController):
 
         # extra validation to make sure that email address isn't already in use
         if not errors:
+            valid_data["email"] = valid_data["email"].lower()
             user = model.User.getByEmail(valid_data["email"])
             if user:
                 errors["exists"] = True
@@ -267,7 +271,7 @@ class LoginController(BaseLoginController):
         # check that the user exists and the password matches
         user = None
         if not errors:
-            user = model.User.getByEmail(valid_data["email"])
+            user = model.User.getByEmail(valid_data["email"].lower())
             if user:
                 hashed_password = model.User.hashPassword(valid_data["password"], user.password_salt)
                 if hashed_password != user.hashed_password:
@@ -318,7 +322,7 @@ class ForgotPasswordController(FormController):
             self.redisplay(form_data, errors)
         else:
             # for security, don't alert them if the user doesn't exist
-            user = model.User.getByEmail(valid_data["email"])
+            user = model.User.getByEmail(valid_data["email"].lower())
             if user:
                 user = user.resetPassword()
                 self.deferEmail([user.email], "Reset Password", "reset_password.html",
