@@ -2,5 +2,7 @@
 *.min.css
 *.min.js
 
+lib/pip
+
 config/vars.yaml
 static/robots.txt

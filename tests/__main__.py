@@ -12,6 +12,7 @@ dev_appserver.fix_sys_path()
 
 # fix_sys_path removes the current working directory, so we add it back in
 sys.path.append('.')
+sys.path.append(os.path.join('lib', 'pip', 'webtest'))
 
 # import and run config so this env matches the normal one
 import appengine_config

@@ -1,4 +1,4 @@
-Copyright &copy; 2011-2017, [Brendan Doms](http://www.bdoms.com/)  
+Copyright &copy; 2011-2018, [Brendan Doms](http://www.bdoms.com/)  
 Licensed under the [MIT license](http://www.opensource.org/licenses/MIT)
 
 
@@ -47,6 +47,15 @@ If you don't want to retain the scaffold's history as part of your project I rec
 ```bash
 git reset $(git commit-tree HEAD^{tree} -m "Initial commit.")
 ```
+
+### Testing Dependencies
+
+These are required to run tests, but are not needed to run the server and aren't included during deployment.
+
+```bash
+pip install -r requirements.txt -t lib/pip
+```
+
 
 ## Use
 
