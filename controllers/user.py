@@ -65,6 +65,9 @@ class IndexController(blobstore_handlers.BlobstoreUploadHandler, FormController)
     # TODO: need a serving URL for non-image files and this should work in prod
     #self.user.pic_url = 'https://' + self.gcs_bucket + '.storage.googleapis.com/' + rel_path
 
+    # this is sometimes called by the blob service, so it won't include the CSRF
+    SKIP_CSRF = True
+
     @testDispatch
     @withUser
     def get(self):
@@ -76,6 +79,10 @@ class IndexController(blobstore_handlers.BlobstoreUploadHandler, FormController)
     def post(self):
 
         if self.request.get('delete'):
+            # this is called directly so we can manually check the CSRF here
+            if not self.checkCSRF():
+                return self.renderError(412)
+
             if self.user.pic_gcs:
                 path = self.user.pic_gcs
                 if path.startswith('/gs/'):

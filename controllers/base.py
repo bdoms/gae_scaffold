@@ -3,6 +3,7 @@
 # python imports
 import json
 import logging
+import os
 import urllib2
 
 # app engine api imports
@@ -32,9 +33,26 @@ class BaseController(webapp2.RequestHandler):
     # include global template variables that don't change across requests here
     jinja_env.globals.update({'h': helpers})
 
+    SKIP_CSRF = False
+
+    def checkCSRF(self):
+        csrf = self.session.get('csrf')
+        if csrf and csrf == self.request.get('csrf'):
+            # check passed, so rotate the value
+            self.session['csrf'] = os.urandom(32).encode('base64').replace('\n', '')
+            return True
+        else:
+            logging.warning('CSRF Check Failed')
+            return False
+
     def dispatch(self):
         # get a session store for this request
         self.session_store = sessions.get_store(request=self.request)
+
+        # always check CSRF if this is a post unless explicitly disabled
+        if self.request.method == 'POST' and not self.SKIP_CSRF:
+            if not self.checkCSRF():
+                return self.renderError(412)
 
         if hasattr(self, "before"):
             try:
@@ -70,14 +88,24 @@ class BaseController(webapp2.RequestHandler):
 
     def compileTemplate(self, filename, **kwargs):
         template = self.jinja_env.get_template(filename)
+
         # add some standard variables
         kwargs["user"] = user = self.user
         kwargs["is_admin"] = user and user.is_admin
         kwargs["is_dev"] = users.is_current_user_admin()
         kwargs["form"] = self.session.pop("form_data", {})
         kwargs["errors"] = self.session.pop("errors", {})
+
         # flashes are a dict with two properties: {"level": "info|success|error", "message": "str"}
         kwargs["flash"] = self.session.pop("flash", {})
+
+        # add CSRF if it doesn't already exist
+        csrf = self.session.get('csrf')
+        if not csrf:
+            csrf = os.urandom(32).encode('base64').replace('\n', '')
+            self.session['csrf'] = csrf
+        kwargs['csrf'] = csrf
+
         return template.render(kwargs)
 
     def render(self, content):

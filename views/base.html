@@ -44,7 +44,9 @@
                 <li><a href="/user">Account Settings</a></li>
                 <li>
                     <a id="logout-link" href="#">Log Out</a>
-                    <form id="logout-form" method="post" action="/user/logout"></form>
+                    <form id="logout-form" method="post" action="/user/logout">
+                        <input type="hidden" name="csrf" value="{{csrf}}">
+                    </form>
                 </li>
             {% else %}
                 <li><a href="/user/signup">Sign Up</a></li>

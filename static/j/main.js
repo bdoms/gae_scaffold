@@ -61,7 +61,8 @@ gaescaffold.upload = function(e) {
         }
     }
 
-    gaescaffold.ajax('POST', '/api/upload', {'url': form.action}, function(response) {
+    var data = {'url': form.action, 'csrf': form.csrf.value};
+    gaescaffold.ajax('POST', '/api/upload', data, function(response) {
         var response_json = JSON.parse(response);
         form.action = response_json.url;
         form.setAttribute("data-ready", true);

@@ -8,6 +8,7 @@
     {% if user.pic_url %}
         <img src="{{user.pic_url}}=s100" alt="Profile Pic" />
         <form method="post" action="">
+            <input type="hidden" name="csrf" value="{{csrf}}">
             <input type="hidden" name="delete" value="1" />
             <input type="submit" value="Delete" />
         </form>
@@ -18,6 +19,7 @@
 
 <p>
     <form method="post" action="/user" enctype="multipart/form-data" class="upload-form">
+        <input type="hidden" name="csrf" value="{{csrf}}">
         <input type="file" name="profile_pic" />
         <input type="submit" value="Upload New" />
     </form>

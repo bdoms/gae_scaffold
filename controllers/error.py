@@ -15,6 +15,9 @@ class ErrorController(BaseController):
 class LogErrorController(BaseController):
     """ called via AJAX to log when static error pages get displayed """
 
+    # called from a static page so it won't know CSRF
+    SKIP_CSRF = True
+
     def post(self):
         reason = self.request.get("reason", "None")
         exception = StaticPageError(reason)
@@ -30,6 +33,9 @@ class LogErrorController(BaseController):
 
 class PolicyViolationController(BaseController):
     """ called by the browser to report when a resource violates the CSP """
+
+    # called by the browser so it won't know CSRF
+    SKIP_CSRF = True
 
     def post(self):
         exception = PolicyViolationError(self.request.body)

@@ -34,13 +34,33 @@ class BaseTestController(BaseTestCase):
         # properly sets cookies for the session to work so that it doesn't have to be done every time
         response = self.app.get(*args, **kwargs)
         self.setCookie(response)
+        if response.status_int == 200:
+            self.prior_response = response
         return response
 
     def sessionPost(self, *args, **kwargs):
         # properly sets cookies for the session to work so that it doesn't have to be done every time
+        args = list(args) # convert from tuple so we can modify below
+        data = args[1]
+
+        data['csrf'] = self.getCsrf(args[0])
+        args[1] = data
+
         response = self.app.post(*args, **kwargs)
         self.setCookie(response)
         return response
+
+    def getCsrf(self, url):
+        if hasattr(self, 'prior_response') and self.prior_response:
+            response = self.prior_response
+            self.prior_response = None
+        else:
+            response = self.app.get(url)
+            assert response.status_int == 200
+            self.setCookie(response)
+
+        value_split = response.body.split('name="csrf" value="', 1)[1]
+        return value_split.split('"', 1)[0]
 
     def login(self, user=None):
         if not user and hasattr(self, "user"):
@@ -50,7 +70,7 @@ class BaseTestController(BaseTestCase):
             'password': user.password.encode('utf8')}, headers=HEADERS, extra_environ=ENVIRON)
 
     def logout(self):
-        response = self.app.post('/user/logout')
+        response = self.app.post('/user/logout', {'csrf': self.getCsrf('/home')})
         return response
 
 
@@ -524,7 +544,7 @@ class TestUser(BaseTestController):
         assert '<h2>Account Settings</h2>' in response
 
         # test delete
-        response = self.app.post('/user', {'delete': '1'})
+        response = self.sessionPost('/user', {'delete': '1'})
         response = response.follow()
         assert '<h2>Account Settings</h2>' in response
 
@@ -714,7 +734,7 @@ class TestUser(BaseTestController):
         # with the right auth this page should display properly
         self.user = self.user.resetPassword()
         token = self.user.token
-        response = self.app.get('/user/resetpassword?key=' + key + '&token=' + token)
+        response = self.sessionGet('/user/resetpassword?key=' + key + '&token=' + token)
         assert '<h2>Reset Password</h2>' in response
 
         # posting a new password but without user agent or IP address won't log in
@@ -731,6 +751,9 @@ class TestUser(BaseTestController):
         # posting a new password should log the user in - reset again to get a new token
         self.user = self.user.resetPassword()
         data["token"] = self.user.token
+
+        # generate a new csrf after the successful post above
+        self.sessionGet('/user/resetpassword?key=' + key + '&token=' + self.user.token)
 
         response = self.sessionPost('/user/resetpassword', data, headers=HEADERS, extra_environ=ENVIRON)
         response = response.follow()
@@ -791,7 +814,10 @@ class TestAPI(BaseTestController):
         self.login()
 
     def test_upload(self):
-        response = self.app.post('/api/upload', {'url': '/user'})
+        # get a page first so the CSRF is generated (no get action for api)
+        self.sessionGet('/user')
+
+        response = self.sessionPost('/api/upload', {'url': '/user'})
         assert 'url' in response
 
 
@@ -802,7 +828,7 @@ class TestDev(BaseTestController):
         assert '<h2>Dev</h2>' in response
 
         # test clearing memcache out
-        response = self.app.post('/dev', {"memcache": "1"})
+        response = self.sessionPost('/dev', {"memcache": "1"})
         assert response.status_int == 302
 
 
