@@ -24,6 +24,9 @@
     {% if errors.get('type') %}
         <span class="error">That file type is not supported. Please select an image file.</span>
     {% endif %}
+    {% if errors.get('corrupt') %}
+        <span class="error">That file has been corrupted. Please select another image file.</span>
+    {% endif %}
 </p>
 
 <ul>

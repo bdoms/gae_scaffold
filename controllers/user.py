@@ -101,10 +101,16 @@ class IndexController(blobstore_handlers.BlobstoreUploadHandler, FormController)
                     errors = {'type': True}
                     continue
 
-                # note that this serving URL supports size and crop query params
+                try:
+                    # note that this serving URL supports size and crop query params
+                    self.user.pic_url = images.get_serving_url(upload, secure_url=True)
+                except images.TransformationError:
+                    upload.delete()
+                    errors = {'corrupt': True}
+                    continue
+
                 self.user.pic_gcs = upload.gs_object_name
                 self.user.pic_blob = upload.key()
-                self.user.pic_url = images.get_serving_url(upload, secure_url=True)
         
             if errors:
                 return self.redisplay({}, errors)
