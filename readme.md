@@ -88,7 +88,7 @@ pip install -r requirements.txt -t lib/pip
 #### Run Development Server
 
 ```bash
-dev_appserver.py --debug .
+dev_appserver.py app.yaml
 ```
 
 This starts a server running at http://localhost:8080/

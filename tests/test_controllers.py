@@ -20,7 +20,7 @@ class BaseTestController(BaseTestCase):
     def setUp(self):
         super(BaseTestController, self).setUp()
         # this must be imported after the above setup in order for the stubs to work
-        from website import app
+        from app import app
         from controllers import base as controller_base
         self.app = TestApp(app)
         self.controller_base = controller_base

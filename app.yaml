@@ -29,11 +29,11 @@ handlers:
   upload: static/robots.txt
 
 - url: /(dev|job).*
-  script: website.app
+  script: app.app
   login: admin
 
 - url: /.*
-  script: website.app
+  script: app.app
 
 error_handlers:
 - file: views/static/errors/default.html

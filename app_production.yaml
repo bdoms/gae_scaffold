@@ -32,12 +32,12 @@ handlers:
   upload: static/robots.txt
 
 - url: /(dev|job).*
-  script: website.app
+  script: app.app
   login: admin
   secure: always
 
 - url: /.*
-  script: website.app
+  script: app.app
   secure: always
 
 error_handlers:
@@ -62,4 +62,4 @@ skip_files:
 - ^lib/gae_deploy/lib/.*$
 - ^lib/(gae_html|gae_validators)/test\.py$
 - ^lib/(sendgrid-python|python-http-client)/(examples|test)/.*$
-- ^lib/webtest/.*$
+- ^lib/pip/.*$
