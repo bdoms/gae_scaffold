@@ -1,6 +1,5 @@
 import base64
 import os
-import pickle
 import unittest
 
 from google.appengine.ext import testbed
@@ -43,17 +42,16 @@ class BaseTestCase(unittest.TestCase):
         # see http://stackoverflow.com/questions/6632809/gae-unit-testing-taskqueue-with-testbed
         tasks = self.task_stub.GetTasks(name)
         self.task_stub.FlushQueue(name)
+
         while tasks:
+            # run each of the tasks, checking that they succeeded
             for task in tasks:
-                (func, args, opts) = pickle.loads(base64.b64decode(task["body"]))
-                func(*args, **opts)
+                params = base64.b64decode(task['body'])
+                assert self.app.post(task['url'], params)
+
+            # running tasks can add more tasks, so keep checking until there's none
             tasks = self.task_stub.GetTasks(name)
             self.task_stub.FlushQueue(name)
-
-        # Run each of the tasks, checking that they succeeded.
-        for task in tasks:
-            response = self.post(task['url'], task['params'])
-            self.assertOK(response)
 
     # fixtures
     def createUser(self, email=None, is_admin=False, **kwargs):

@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from datetime import timedelta
@@ -262,44 +263,6 @@ class TestBase(BaseMockController):
         assert self.controller.user is not None
         assert self.controller.user.key == user.key
 
-    def test_sendEmail(self):
-        to = 'test' + UCHAR + '@example.com'
-        subject = 'Subject' + UCHAR
-        html = '<p>Test body' + UCHAR + '</p>'
-        self.controller.sendEmail([to], subject, html)
-
-        messages = self.mail_stub.get_sent_messages()
-        assert len(messages) == 1
-        assert messages[0].to == to
-        assert messages[0].subject == subject
-        # having a unicode char triggers base64 encoding
-        assert html.encode('utf-8').encode('base64') in str(messages[0].html)
-        assert ('Test body' + UCHAR).encode('utf-8').encode('base64') in str(messages[0].body)
-        assert not hasattr(messages[0], 'reply_to')
-
-        reply_to = 'test_reply' + UCHAR + '@example.com'
-        self.controller.sendEmail([to], subject, html, reply_to)
-        messages = self.mail_stub.get_sent_messages()
-        assert len(messages) == 2
-        assert messages[1].reply_to == reply_to
-
-    def test_fanoutEmail(self):
-        to = 'test' + UCHAR + '@example.com'
-        subject = 'Subject' + UCHAR
-        html = '<p>test email template' + UCHAR + '</p>'
-        count = 10
-        self.controller.fanoutEmail([to]*count, subject, html)
-
-        # move mails out of the queue so we can test them
-        self.executeDeferred(name='mail')
-
-        messages = self.mail_stub.get_sent_messages()
-        assert len(messages) == count
-        assert messages[0].to == to
-        assert messages[0].subject == subject
-        # having a unicode char triggers base64 encoding
-        assert html.encode('utf-8').encode('base64') in str(messages[0].html)
-
     def test_deferEmail(self):
         to = 'test' + UCHAR + '@example.com'
         subject = 'Subject' + UCHAR
@@ -316,6 +279,25 @@ class TestBase(BaseMockController):
         assert messages[0].subject == subject
         # having a unicode char triggers base64 encoding
         assert html.encode('utf-8').encode('base64') in str(messages[0].html)
+        assert not hasattr(messages[0], 'reply_to')
+
+        reply_to = 'test.reply' + UCHAR + '@example.com'
+        content = 'base64encodeddata'
+        cid = 'content-id'
+        filename = 'file.ext'
+        attachments = [{'content': content, 'content_id': cid, 'filename': filename, 'type': 'mime/type'}]
+        self.controller.deferEmail([to], subject, template, attachments=attachments, reply_to=reply_to)
+        self.executeDeferred(name='mail')
+
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == 2
+        assert hasattr(messages[1], 'reply_to')
+        assert messages[1].reply_to == reply_to
+
+        original = str(messages[1].original)
+        assert content.encode('base64') in original
+        assert cid in original
+        assert filename in original
 
 
 class TestForm(BaseMockController):
@@ -834,6 +816,41 @@ class TestDev(BaseTestController):
 
 class TestJob(BaseTestController):
 
-    def test_job(self):
+    def test_auths(self):
         response = self.app.get('/job/auths')
         assert 'OK' in response
+
+    def test_email(self):
+        data = {
+            'to': ('test' + UCHAR + '@example.com').encode('utf-8'),
+            'subject': ('Subject' + UCHAR).encode('utf-8'),
+            'html': ('<p>Test body' + UCHAR + '</p>').encode('utf-8')
+        }
+        self.app.post('/job/email', data)
+
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == 1
+        assert messages[0].to.encode('utf-8') == data['to']
+        assert messages[0].subject.encode('utf-8') == data['subject']
+        # having a unicode char triggers base64 encoding
+        assert data['html'].encode('base64') in str(messages[0].html)
+        assert ('Test body' + UCHAR).encode('utf-8').encode('base64') in str(messages[0].body)
+        assert not hasattr(messages[0], 'reply_to')
+
+        content = 'data'.encode('base64')
+        cid = 'content-id'
+        filename = 'file.ext'
+        attachments = [{'content': content, 'content_id': cid, 'filename': filename, 'type': 'mime/type'}]
+        data['attachments'] = json.dumps(attachments)
+        data['reply_to'] = ('test.reply' + UCHAR + '@example.com').encode('utf-8')
+        self.app.post('/job/email', data)
+
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == 2
+        assert hasattr(messages[1], 'reply_to')
+        assert messages[1].reply_to.encode('utf-8') == data['reply_to']
+
+        original = str(messages[1].original)
+        assert content in original
+        assert cid in original
+        assert filename in original

@@ -1,14 +1,14 @@
 # the base file and class for all controllers to inherit from
 
 # python imports
+import base64
 import json
 import logging
 import os
 import urllib2
 
 # app engine api imports
-from google.appengine.api import app_identity, mail, memcache, users
-from google.appengine.ext import deferred
+from google.appengine.api import app_identity, memcache, taskqueue, users
 
 # app engine included libraries imports
 import jinja2
@@ -18,12 +18,10 @@ from webapp2_extras import sessions
 # local imports
 import helpers
 import model
-from config.constants import VIEWS_PATH, SENDGRID_API_KEY, SENDER_EMAIL, SUPPORT_EMAIL
+from config.constants import VIEWS_PATH, SUPPORT_EMAIL
 
 # lib imports
 from gae_html import cacheAndRender
-import sendgrid
-from sendgrid.helpers import mail as sgmail
 
 
 class BaseController(webapp2.RequestHandler):
@@ -204,58 +202,12 @@ class BaseController(webapp2.RequestHandler):
                 del self.session['auth_key']
         return user
 
-    @classmethod
-    def sendEmail(cls, to, subject, html, reply_to=None):
-        body = helpers.strip_html(html)
+    def deferEmail(self, to, subject, filename, reply_to=None, attachments=None, **kwargs):
+        params = {'to': to, 'subject': subject}
 
-        if SENDGRID_API_KEY and not helpers.testing():
-            message = sgmail.Mail()
-            message.from_email = sgmail.Email(SENDER_EMAIL)
-            message.subject = subject
-            # NOTE that plain must come first
-            message.add_content(sgmail.Content('text/plain', body))
-            message.add_content(sgmail.Content('text/html', html))
+        if reply_to:
+            params['reply_to'] = reply_to
 
-            personalization = sgmail.Personalization()
-            for to_email in to:
-                personalization.add_to(sgmail.Email(to_email))
-            message.add_personalization(personalization)
-
-            if reply_to:
-                message.reply_to(sgmail.Email(reply_to))
-
-            if helpers.debug():
-                mail_settings = sgmail.MailSettings()
-                mail_settings.sandbox_mode = sgmail.SandBoxMode(True)
-                message.mail_settings = mail_settings
-
-            api = sendgrid.SendGridAPIClient(apikey=SENDGRID_API_KEY)
-            
-            # an error here logs the status code but not the message
-            # which is way more helpful, so we get it manually
-            try:
-                response = api.client.mail.send.post(request_body=message.get())
-            except urllib2.HTTPError, e:
-                logging.error(e.read())
-        else:
-            for to_email in to:
-                if reply_to:
-                    mail.send_mail(sender=SENDER_EMAIL, to=to_email, subject=subject, body=body, html=html,
-                        reply_to=reply_to)
-                else:
-                    mail.send_mail(sender=SENDER_EMAIL, to=to_email, subject=subject, body=body, html=html)
-
-    @classmethod
-    def fanoutEmail(cls, to, subject, body, reply_to=None):
-        # do it in batches and continue to fan out to minimize chance that it gets stuck
-        batch_size = 5
-        deferred.defer(cls.sendEmail, to[:batch_size], subject, body, reply_to=reply_to, _queue="mail")
-
-        leftovers = to[batch_size:]
-        if leftovers:
-            deferred.defer(cls.fanoutEmail, leftovers, subject, body, reply_to=reply_to, _queue="mail")
-
-    def deferEmail(self, to, subject, filename, reply_to=None, **kwargs):
         # this supports passing a template as well as a file
         if type(filename) == type(""):
             filename = "emails/" + filename
@@ -264,9 +216,15 @@ class BaseController(webapp2.RequestHandler):
         # support passing in a custom host to prefix link
         if "host" not in kwargs:
             kwargs["host"] = self.request.host_url
-        html = template.render(kwargs)
+        params['html'] = template.render(kwargs)
 
-        self.fanoutEmail(to, subject, html, reply_to=reply_to)
+        if attachments:
+            # attachments might contain binary data, which must be encoded to transport in the queue
+            for attachment in attachments:
+                attachment['content'] = base64.b64encode(attachment['content'])
+            params['attachments'] = json.dumps(attachments)
+
+        taskqueue.add(url='/job/email', params=params, queue_name='mail')
 
 
 class FormController(BaseController):

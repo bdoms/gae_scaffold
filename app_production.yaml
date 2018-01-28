@@ -6,9 +6,6 @@ threadsafe: true
 includes:
 - config/vars.yaml
 
-builtins:
-- deferred: on
-
 default_expiration: "1000d"
 
 libraries:

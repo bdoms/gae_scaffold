@@ -26,6 +26,7 @@ ROUTES = [('/', index.IndexController),
           ('/api/upload', api.UploadController),
           ('/dev', dev.DevController),
           ('/job/auths', job.AuthsController),
+          ('/job/email', job.EmailController),
           #('/errors/(.*)', static.StaticController), # uncomment to test static error pages
           ('/logerror', error.LogErrorController),
           ('/policyviolation', error.PolicyViolationController),
