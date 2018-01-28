@@ -88,10 +88,10 @@ class IndexController(blobstore_handlers.BlobstoreUploadHandler, FormController)
                 if path.startswith('/gs/'):
                     path = path[3:]
                 gcs.delete(path)
+            if self.user.pic_url:
+                images.delete_serving_url(self.user.pic_blob)
             if self.user.pic_blob:
                 blobstore.delete(self.user.pic_blob)
-            if self.user.pic_url:
-                images.delete_serving_url(self.user.pic_url)
             
             self.user.pic_gcs = None
             self.user.pic_blob = None
