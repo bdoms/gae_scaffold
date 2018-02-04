@@ -99,6 +99,14 @@ This starts a server running at http://localhost:8080/
 python tests
 ```
 
+Pass `--unit` or `--lint` as to only run unit tests or the linter, respectively.
+
+You can also specify an individual file to run tests on, relative to the `tests` directory:
+
+```bash
+python tests test_default.py
+```
+
 #### Deploy to Production
 
 To deploy only the current branch:
