@@ -70,7 +70,6 @@ class TestHelpers(BaseTestCase):
         result = self.helpers.nl2br("some text\nwith\nnewlines")
         assert result == "some text<br/>with<br/>newlines"
 
-    
     def test_ordinal(self):
         ordinals = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"]
         for i in range(len(ordinals)):

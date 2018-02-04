@@ -5,7 +5,6 @@ import base64
 import json
 import logging
 import os
-import urllib2
 
 # app engine api imports
 from google.appengine.api import app_identity, memcache, taskqueue, users
@@ -21,7 +20,7 @@ import model
 from config.constants import VIEWS_PATH, SUPPORT_EMAIL
 
 # lib imports
-from gae_html import cacheAndRender
+from gae_html import cacheAndRender # NOQA: F401
 
 
 class BaseController(webapp2.RequestHandler):
@@ -61,7 +60,7 @@ class BaseController(webapp2.RequestHandler):
         # only run the regular action if there isn't already an error or redirect
         if self.response.status_int == 200:
             webapp2.RequestHandler.dispatch(self)
-        
+
             if hasattr(self, "after"):
                 try:
                     self.after(*self.request.route_args, **self.request.route_kwargs)
@@ -200,6 +199,7 @@ class BaseController(webapp2.RequestHandler):
                 user = auth.user
             else:
                 del self.session['auth_key']
+
         return user
 
     def deferEmail(self, to, subject, filename, reply_to=None, attachments=None, **kwargs):
@@ -209,7 +209,7 @@ class BaseController(webapp2.RequestHandler):
             params['reply_to'] = reply_to
 
         # this supports passing a template as well as a file
-        if type(filename) == type(""):
+        if isinstance(filename, basestring):
             filename = "emails/" + filename
         template = self.jinja_env.get_template(filename)
 
@@ -242,7 +242,7 @@ class FormController(BaseController):
                 form_data[name] = self.request.get(name)
             except UnicodeDecodeError:
                 return self.renderError(400)
-            
+
             valid, data = validator(form_data[name])
             if valid:
                 valid_data[name] = data
@@ -253,7 +253,7 @@ class FormController(BaseController):
 
 
 def withUser(action):
-    def decorate(*args,  **kwargs):
+    def decorate(*args, **kwargs):
         controller = args[0]
         if controller.user:
             return action(*args, **kwargs)
@@ -264,7 +264,7 @@ def withUser(action):
 
 
 def withoutUser(action):
-    def decorate(*args,  **kwargs):
+    def decorate(*args, **kwargs):
         controller = args[0]
         if not controller.user:
             return action(*args, **kwargs)
@@ -275,7 +275,7 @@ def withoutUser(action):
 
 
 def removeSlash(action):
-    def decorate(*args,  **kwargs):
+    def decorate(*args, **kwargs):
         controller = args[0]
         if controller.request.path.endswith("/"):
             return controller.redirect(controller.request.path[:-1], permanent=True)
@@ -284,7 +284,7 @@ def removeSlash(action):
 
 
 def validateReferer(action):
-    def decorate(*args,  **kwargs):
+    def decorate(*args, **kwargs):
         controller = args[0]
         referer = controller.request.headers.get("referer")
         if not referer.startswith("http://" + controller.request.headers.get("host")):
@@ -300,9 +300,11 @@ def validateReferer(action):
 #       (whereas the BaseController uses webapp2) and webapp 1 doesn't use the dispatch method
 #       which is why we have this custom second-level decorator defined to call it manually.
 def testDispatch(action):
+
     class MockApp(object):
         debug = True
-    def decorate(*args,  **kwargs):
+
+    def decorate(*args, **kwargs):
         if helpers.testing():
             controller = args[0]
             # this will go into an infinite loop of dispatching itself if we don't stop it
@@ -314,4 +316,5 @@ def testDispatch(action):
                 controller.dispatch()
         else:
             return action(*args, **kwargs)
+
     return decorate

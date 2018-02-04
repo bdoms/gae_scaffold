@@ -2,6 +2,7 @@ import base64
 from datetime import datetime, timedelta
 import json
 import logging
+import urllib2
 
 from google.appengine.api import mail
 
@@ -79,7 +80,7 @@ class EmailController(BaseController):
             # an error here logs the status code but not the message
             # which is way more helpful, so we get it manually
             try:
-                response = self.SENDGRID.client.mail.send.post(request_body=message.get())
+                self.SENDGRID.client.mail.send.post(request_body=message.get())
             except urllib2.HTTPError, e:
                 logging.error(e.read())
         else:

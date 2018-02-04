@@ -53,6 +53,7 @@ class StaticPageError(Exception):
     def __init__(self, reason):
         self.message = "Static Error Page: " + reason
 
+
 class PolicyViolationError(Exception):
     def __init__(self, reason):
         self.message = "Content Security Policy Violation: " + reason

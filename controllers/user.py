@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from google.appengine.api import images
 from google.appengine.ext import blobstore
@@ -63,7 +63,7 @@ class BaseLoginController(FormController):
 class IndexController(blobstore_handlers.BlobstoreUploadHandler, FormController):
 
     # TODO: need a serving URL for non-image files and this should work in prod
-    #self.user.pic_url = 'https://' + self.gcs_bucket + '.storage.googleapis.com/' + rel_path
+    # self.user.pic_url = 'https://' + self.gcs_bucket + '.storage.googleapis.com/' + rel_path
 
     # this is sometimes called by the blob service, so it won't include the CSRF
     SKIP_CSRF = True
@@ -92,7 +92,7 @@ class IndexController(blobstore_handlers.BlobstoreUploadHandler, FormController)
                 images.delete_serving_url(self.user.pic_blob)
             if self.user.pic_blob:
                 blobstore.delete(self.user.pic_blob)
-            
+
             self.user.pic_gcs = None
             self.user.pic_blob = None
             self.user.pic_url = None
@@ -118,7 +118,7 @@ class IndexController(blobstore_handlers.BlobstoreUploadHandler, FormController)
 
                 self.user.pic_gcs = upload.gs_object_name
                 self.user.pic_blob = upload.key()
-        
+
             if errors:
                 return self.redisplay({}, errors)
 
@@ -144,7 +144,9 @@ class AuthsController(FormController):
 
         try:
             auth_key = model.ndb.Key(urlsafe=str_key)
-        except:
+        except Exception:
+            # this is really a ProtocolBufferDecodeError, but we can't catch that
+            # see https://github.com/googlecloudplatform/datastore-ndb-python/issues/143
             self.flash('error', 'Invalid session.')
         else:
             if auth_key.parent() != self.user.key:
@@ -168,7 +170,7 @@ class EmailController(FormController):
 
     @withUser
     def post(self):
-        
+
         form_data, errors, valid_data = self.validate()
 
         hashed_password = model.User.hashPassword(valid_data["password"], self.user.password_salt)
@@ -207,7 +209,7 @@ class PasswordController(FormController):
 
     @withUser
     def post(self):
-        
+
         form_data, errors, valid_data = self.validate()
 
         hashed_password = model.User.hashPassword(valid_data["password"], self.user.password_salt)
@@ -220,7 +222,7 @@ class PasswordController(FormController):
             self.redisplay(form_data, errors)
         else:
             password_salt, hashed_password = model.User.changePassword(valid_data["new_password"])
-            
+
             self.user.populate(password_salt=password_salt, hashed_password=hashed_password)
             self.user.put()
             self.uncache(self.user.slug)
@@ -245,7 +247,7 @@ class SignupController(BaseLoginController):
 
     @withoutUser
     def post(self):
-        
+
         form_data, errors, valid_data = self.validate()
 
         # extra validation to make sure that email address isn't already in use
@@ -278,7 +280,7 @@ class LoginController(BaseLoginController):
 
     @withoutUser
     def post(self):
-        
+
         form_data, errors, valid_data = self.validate()
 
         # check that the user exists and the password matches
@@ -308,7 +310,7 @@ class LogoutController(BaseController):
         str_key = self.session['auth_key']
         try:
             auth_key = model.ndb.Key(urlsafe=str_key)
-        except:
+        except Exception:
             pass
         else:
             self.uncache(str_key)
@@ -328,7 +330,7 @@ class ForgotPasswordController(FormController):
 
     @withoutUser
     def post(self):
-        
+
         form_data, errors, valid_data = self.validate()
 
         if errors:
@@ -372,7 +374,7 @@ class ResetPasswordController(BaseLoginController):
         self.renderTemplate('user/reset_password.html', key=self.key, token=self.token)
 
     def post(self):
-        
+
         form_data, errors, valid_data = self.validate()
 
         if errors:

@@ -50,9 +50,9 @@ class DevController(FormController):
             modified = []
 
             # do migration work
-            #q = model.User.query()
-            #for item in q:
-            #    modified.append(item)
+            # q = model.User.query()
+            # for item in q:
+            #     modified.append(item)
 
             if modified:
                 model.ndb.put_multi(modified)

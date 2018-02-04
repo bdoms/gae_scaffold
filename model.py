@@ -79,7 +79,7 @@ def getByKey(str_key):
         if not entity:
             try:
                 key = ndb.Key(urlsafe=str_key)
-            except:
+            except Exception:
                 pass
             else:
                 entity = key.get()
@@ -87,12 +87,14 @@ def getByKey(str_key):
                     memcache.add(str_key, entity)
     return entity
 
+
 def cache(key, function, expires=86400):
     value = memcache.get(key)
     if value is None:
         value = function()
         memcache.add(key, value, expires)
     return value
+
 
 def uncache(key, seconds=10):
     memcache.delete(key, seconds=seconds)

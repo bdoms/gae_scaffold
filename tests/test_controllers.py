@@ -95,7 +95,10 @@ class BaseMockController(BaseTestController):
     def mockSessions(self):
         # this is used by tests that want to bypass needing to perform session-dependent actions within a request
         class MockSessionStore(object):
-            def get_session(self): return {}
+
+            def get_session(self):
+                return {}
+
         self.controller.session_store = MockSessionStore()
 
     def mockLogin(self):
@@ -112,10 +115,16 @@ class TestBase(BaseMockController):
         self.controller.initialize(self.getMockRequest(), self.app.app.response_class())
 
     def test_dispatch(self):
-        
-        def before(): self.call_list.append("before")
-        def get(): self.call_list.append("get")
-        def after(): self.call_list.append("after")
+
+        def before():
+            self.call_list.append("before")
+
+        def get():
+            self.call_list.append("get")
+
+        def after():
+            self.call_list.append("after")
+
         self.controller.before = before
         self.controller.get = get
         self.controller.after = after
@@ -132,8 +141,11 @@ class TestBase(BaseMockController):
         assert self.call_list == ["before"]
 
     def test_session(self):
+
         # sessions can only be used during a request, so we create a mock one to save something
-        def get(): self.controller.session["test key"] = "test value" + UCHAR
+        def get():
+            self.controller.session["test key"] = "test value" + UCHAR
+
         self.controller.get = get
         self.controller.dispatch()
         assert self.controller.session.get("test key") == "test value" + UCHAR
@@ -186,7 +198,10 @@ class TestBase(BaseMockController):
         assert not self.controller.response.body
 
     def test_head(self):
-        def get(): self.called = True
+
+        def get():
+            self.called = True
+
         self.controller.get = get
 
         # HEAD should just call the GET version
@@ -217,9 +232,11 @@ class TestBase(BaseMockController):
 
     def test_cache(self):
         self.executed = 0
+
         def testFunction():
             self.executed += 1
             return "test value"
+
         assert self.executed == 0
 
         result = self.controller.cache("test key", testFunction)
@@ -259,14 +276,14 @@ class TestBase(BaseMockController):
         # finally if a valid keys is added to the session it should return the user object
         self.mockLogin()
         self.controller.user = self.controller_base.BaseController.user.func(self.controller)
-        
+
         assert self.controller.user is not None
         assert self.controller.user.key == user.key
 
     def test_deferEmail(self):
         to = 'test' + UCHAR + '@example.com'
         subject = 'Subject' + UCHAR
-        html = '<p>test email template' + UCHAR + '</p>' 
+        html = '<p>test email template' + UCHAR + '</p>'
         template = jinja2.Template(html)
         self.controller.deferEmail([to], subject, template)
 
@@ -305,8 +322,10 @@ class TestForm(BaseMockController):
     class UnicodeMockRequest(object):
         method = "POST"
         host_url = "http://localhost"
+
         def __init__(self, d):
             self.d = d
+
         def get(self, field):
             return unicode(self.d.get(field))
 
@@ -355,7 +374,9 @@ class TestDecorators(BaseMockController):
         self.mockSessions()
         self.createUser()
 
-        action = lambda x: "action"
+        def action(x):
+            return 'action'
+
         decorator = self.controller_base.withUser(action)
 
         # without a user the action should not be performed and it should redirect
@@ -380,7 +401,9 @@ class TestDecorators(BaseMockController):
         self.mockSessions()
         self.createUser()
 
-        action = lambda x: "action"
+        def action(x):
+            return 'action'
+
         decorator = self.controller_base.withoutUser(action)
 
         # without a user the action should complete without a redirect
@@ -397,7 +420,10 @@ class TestDecorators(BaseMockController):
         assert "Location: /home" in str(self.controller.response.headers)
 
     def test_removeSlash(self):
-        action = lambda x: "action"
+
+        def action(x):
+            return 'action'
+
         decorator = self.controller_base.removeSlash(action)
 
         # without a slash it should not redirect
@@ -415,7 +441,10 @@ class TestDecorators(BaseMockController):
 
     def test_validateReferer(self):
         self.mockSessions()
-        action = lambda x: "action"
+
+        def action(x):
+            return 'action'
+
         decorator = self.controller_base.validateReferer(action)
 
         # with a valid referer the action should complete
@@ -757,7 +786,7 @@ class TestUser(BaseTestController):
         # test that an expired token actually fails
         self.user = self.user.resetPassword()
         token = self.user.token
-        
+
         # works the first time
         response = self.app.get('/user/resetpassword?key=' + key + '&token=' + token)
         assert '<h2>Reset Password</h2>' in response

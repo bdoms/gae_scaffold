@@ -23,7 +23,9 @@ class TestUser(BaseTestCase):
         # revert the stub
         self.model.PASSWORD_PEPPER = orig_pepper
 
-        assert result == "91a97a3db1c2b744579e5d961c85501342f99fe3e2e27641a794455f856071301809d9c273738df490d3933fd087a8fbe1d8833d519ee6dc0f12c0005040b40e"
+        hsh = "91a97a3db1c2b744579e5d961c85501342f99fe3e2e27641a794455f85607130"
+        hsh += "1809d9c273738df490d3933fd087a8fbe1d8833d519ee6dc0f12c0005040b40e"
+        assert result == hsh
 
     def test_changePassword(self):
         # stub so we get constant results
@@ -39,7 +41,10 @@ class TestUser(BaseTestCase):
         self.model.PASSWORD_PEPPER = orig_pepper
 
         assert password_salt == "Y29uc3RhbnQ=\n" # "constant" base64 encoded
-        assert hashed_password == "a3aefba6defa1b49bcbcfb65e5be16976e91be9c5e5d258782abf35480c52a770a6ef5b80f7c53c20e624d4e9f2279ab2693a0f3278cffd1481b6a1252bbe0dc"
+
+        hsh = "a3aefba6defa1b49bcbcfb65e5be16976e91be9c5e5d258782abf35480c52a77"
+        hsh += "0a6ef5b80f7c53c20e624d4e9f2279ab2693a0f3278cffd1481b6a1252bbe0dc"
+        assert hashed_password == hsh
 
     def test_resetPassword(self):
         user = self.createUser()
@@ -66,9 +71,11 @@ class TestModelFunctions(BaseTestCase):
 
     def test_cache(self):
         self.executed = 0
+
         def testFunction():
             self.executed += 1
             return "test value"
+
         assert self.executed == 0
 
         result = self.model.cache("test key", testFunction)
@@ -77,20 +84,25 @@ class TestModelFunctions(BaseTestCase):
 
         # the value should now be cached, so the function should not be executed again
         result = self.model.cache("test key", testFunction)
+        assert result == "test value"
         assert self.executed == 1
 
     def test_uncache(self):
         self.executed = 0
+
         def testFunction():
             self.executed += 1
             return True
+
         assert self.executed == 0
 
         result = self.model.cache("test key", testFunction)
+        assert result is True
         assert self.executed == 1
 
         self.model.uncache("test key")
 
         # the value should not be cached, so the function should execute again
         result = self.model.cache("test key", testFunction)
+        assert result is True
         assert self.executed == 2
