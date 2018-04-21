@@ -481,6 +481,20 @@ class TestError(BaseTestController):
         assert messages[0].subject == "Error Alert"
         assert "Error Message: Static Error Page: Default" in str(messages[0].html)
 
+        # javascript errors also call this to log errors
+        logging.disable(logging.CRITICAL)
+        assert self.app.post('/logerror', {'javascript': 'error'}, status=200)
+        logging.disable(logging.NOTSET)
+
+        # move mails out of the queue so we can test them
+        self.executeDeferred(name="mail")
+
+        messages = self.mail_stub.get_sent_messages()
+        assert len(messages) == 2
+        assert messages[1].to == SUPPORT_EMAIL
+        assert messages[1].subject == "Error Alert"
+        assert "Error Message: JavaScript Error: error" in str(messages[1].html)
+
     def test_policyViolation(self):
         # csp violations are reported directly from browsers
         logging.disable(logging.CRITICAL)

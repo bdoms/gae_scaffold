@@ -1,15 +1,5 @@
 var gaescaffold = gaescaffold || {};
 
-gaescaffold.logout = function(e) {
-    e.preventDefault();
-    document.getElementById("logout-form").submit();
-};
-
-gaescaffold.logout_link = document.getElementById("logout-link");
-if (gaescaffold.logout_link) {
-    gaescaffold.logout_link.addEventListener('click', gaescaffold.logout);
-}
-
 gaescaffold.ajax = function(method, url, data, callback) {
     // compatible with IE7+, Firefox, Chrome, Opera, Safari
     var request = new XMLHttpRequest();
@@ -38,6 +28,22 @@ gaescaffold.ajax = function(method, url, data, callback) {
         request.send();
     }
 };
+
+// this should come as early as possible
+window.onerror = function(error, script, line, char) {
+    var error_data = {'error': error, 'script': script, 'location': line + ':' + char};
+    gaescaffold.ajax('POST', '/logerror', {'javascript': JSON.stringify(error_data)});
+};
+
+gaescaffold.logout = function(e) {
+    e.preventDefault();
+    document.getElementById("logout-form").submit();
+};
+
+gaescaffold.logout_link = document.getElementById("logout-link");
+if (gaescaffold.logout_link) {
+    gaescaffold.logout_link.addEventListener('click', gaescaffold.logout);
+}
 
 gaescaffold.upload = function(e) {
     // at the time of submit swaps out a regular url for a blobstore one, then re-submits

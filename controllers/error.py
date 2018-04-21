@@ -19,8 +19,12 @@ class LogErrorController(BaseController):
     SKIP_CSRF = True
 
     def post(self):
-        reason = self.request.get("reason", "None")
-        exception = StaticPageError(reason)
+        reason = self.request.get('javascript', '')
+        if reason:
+            exception = JavascriptError(reason)
+        else:
+            reason = self.request.get('reason', 'None')
+            exception = StaticPageError(reason)
 
         logging.error(exception.message)
 
@@ -47,6 +51,11 @@ class PolicyViolationController(BaseController):
         # send an email notifying us of this error
         self.deferEmail([SUPPORT_EMAIL], "Error Alert", "error_alert.html",
             exception=exception, user=self.user, url=self.request.referer)
+
+
+class JavascriptError(Exception):
+    def __init__(self, reason):
+        self.message = 'JavaScript Error: ' + reason
 
 
 class StaticPageError(Exception):
