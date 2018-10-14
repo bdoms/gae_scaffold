@@ -1,10 +1,10 @@
-from base import BaseController, cacheAndRender
+from controllers.base import BaseController
 
 
 class SitemapController(BaseController):
     """ handles generating a sitemap """
 
-    @cacheAndRender()
+    #@cacheAndRender()
     def get(self):
         # FYI: sitemaps can only have a max of 50,000 URLs or be 10 MB each
         base_url = "http://" + self.request.headers.get("host")

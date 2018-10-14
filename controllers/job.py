@@ -2,11 +2,11 @@ import base64
 from datetime import datetime, timedelta
 import json
 import logging
-import urllib2
+import urllib.error
 
-from google.appengine.api import mail
+#from google.appengine.api import mail
 
-from base import BaseController
+from controllers.base import BaseController
 from config.constants import SENDGRID_API_KEY, SENDER_EMAIL
 import model
 import helpers
@@ -39,11 +39,11 @@ class EmailController(BaseController):
 
     def post(self):
 
-        to = self.request.get_all('to')
-        subject = self.request.get('subject')
-        html = self.request.get('html')
-        attachments_json = self.request.get('attachments')
-        reply_to = self.request.get('reply_to')
+        to = self.get_arguments('to')
+        subject = self.get_argument('subject')
+        html = self.get_argument('html')
+        attachments_json = self.get_argument('attachments')
+        reply_to = self.get_argument('reply_to')
 
         body = helpers.strip_html(html)
 
@@ -81,9 +81,10 @@ class EmailController(BaseController):
             # which is way more helpful, so we get it manually
             try:
                 self.SENDGRID.client.mail.send.post(request_body=message.get())
-            except urllib2.HTTPError, e:
+            except urllib.error.HTTPError:
                 logging.error(e.read())
         else:
+            # TODO: adapt this to just report to the console
             kwargs = {
                 'sender': SENDER_EMAIL,
                 'subject': subject,

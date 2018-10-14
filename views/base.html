@@ -7,7 +7,7 @@
     <title>
         {% if page_title %}
             {{page_title}} |
-        {% endif %}
+        {% end %}
         Site Name
     </title>
 
@@ -18,13 +18,13 @@
     {% else %}
         <meta name="description" content="Site Name"/>
         <meta name="author" content="Site Author"/>
-    {% endif %}
+    {% end %}
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="{{h.static('/i/favicon.png')}}" />
-    <link rel="apple-touch-icon-precomposed" href="{{h.static('/i/favicon-152.png')}}">
+    <link rel="shortcut icon" href="{{'/static' + h.static('/i/favicon.png')}}" />
+    <link rel="apple-touch-icon-precomposed" href="{{'/static' + h.static('/i/favicon-152.png')}}">
 
-    {{h.style('/c/main.css')}}
+    {% raw h.style('/static/c/main.css') %}
 </head>
 <body>
     <header>
@@ -36,22 +36,22 @@
             {% if user %}
                 {% if is_dev %}
                     <li><a href="/dev">Dev</a></li>
-                {% endif %}
+                {% end %}
                 {% if is_admin %}
                     <li><a href="/admin">Admin</a></li>
-                {% endif %}
+                {% end %}
                 <li><a href="/home">Home</a></li>
                 <li><a href="/user">Account Settings</a></li>
                 <li>
                     <a id="logout-link" href="#">Log Out</a>
                     <form id="logout-form" method="post" action="/user/logout">
-                        <input type="hidden" name="csrf" value="{{csrf}}">
+                        {% raw xsrf_form_html() %}
                     </form>
                 </li>
             {% else %}
                 <li><a href="/user/signup">Sign Up</a></li>
                 <li><a href="/user/login">Log In</a></li>
-            {% endif %}
+            {% end %}
         </ul>
     </nav>
 
@@ -60,8 +60,8 @@
             <div class="flash {{flash['level']}}">
                 <p>{{flash['message']}}</p>
             </div>
-        {% endif %}
-        {% block content %}{% endblock %}
+        {% end %}
+        {% block content %}{% end %}
     </section>
 
     <footer>
@@ -71,13 +71,13 @@
         </ul>
     </footer>
 
-    {{h.script('/j/main.js')}}
+    {% raw h.script('/static/j/main.js') %}
 
     {% if not h.debug() %}
         {#
             include third-party scripts for tracking or advertising here
             be sure to modify the CSP header in `controllers/base.py` if you add from a new source
         #}
-    {% endif %}
+    {% end %}
 </body>
 </html>

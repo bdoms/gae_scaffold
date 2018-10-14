@@ -1,4 +1,4 @@
-{% extends "/base.html" %}
+{% extends "../base.html" %}
 {% block content %}
 
 <h2>Active Sessions</h2>
@@ -21,11 +21,11 @@
                     {{ auth.device }}
                 {% else %}
                     {{ auth.os }}
-                {% endif %}
+                {% end %}
                 {{ auth.browser }}
             {% else %}
                 {{ auth.user_agent }}
-            {% endif %}
+            {% end %}
         </td>
         <td>{{ auth.ip }}</td>
         <td>
@@ -38,16 +38,16 @@
                 Current Session
             {% else %}
                 <form action="" method="post">
-                    <input type="hidden" name="csrf" value="{{csrf}}">
+                    {% raw xsrf_form_html() %}
                     <input type="hidden" name="auth_key" value="{{ auth.key.urlsafe() }}" />
 
                     <input type="submit" value="Revoke Access" />
                 </form>
-            {% endif %}
+            {% end %}
         </td>
     </tr>
-{% endfor %}
+{% end %}
 </tbody>
 </table>
 
-{% endblock %}
+{% end %}

@@ -1,10 +1,10 @@
-from base import BaseController, cacheAndRender
+from controllers.base import BaseController
 
 
 class StaticController(BaseController):
     """ handles any page that doesn't need to render with custom variables """
 
-    @cacheAndRender()
+    #@cacheAndRender()
     def get(self, *args):
 
         path = self.request.path

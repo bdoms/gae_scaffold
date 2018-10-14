@@ -1,14 +1,20 @@
 # this is the main entry point for the application
 import os
+import sys
 
-import webapp2
+from tornado import wsgi
 
-from config.constants import SESSION_KEY
+from config import constants
+
+sys.path.append(os.path.join(constants.LIB_PATH, 'python-http-client'))
+sys.path.append(os.path.join(constants.LIB_PATH, 'sendgrid-python'))
+sys.path.append(os.path.join(constants.LIB_PATH, 'httpagentparser'))
+sys.path.append(os.path.join(constants.LIB_PATH, 'gcs', 'python', 'src')) # should probably be moved to requirements
 
 # URL routes
 from controllers import admin, api, dev, error, home, index, job, sitemap, static, user
 
-ROUTES = [
+handlers = [
     ('/', index.IndexController),
     ('/home', home.HomeController),
     ('/user', user.IndexController),
@@ -34,22 +40,16 @@ ROUTES = [
     ('/(.*)', error.ErrorController)
 ]
 
-# any extra config needed when the app starts
-cookie_args = {
-    # this can prevent XSS attacks by not letting javascript access the cookie
-    # (note that some older browsers do not have this restriction implemented)
-    # disable if you need to access cookies from javascript (not recommended)
-    'httponly': True
-}
+# TODO: make this env var exists, might have to parse GAE_VERSION instead, see
+# https://cloud.google.com/appengine/docs/standard/python3/python-differences
+debug = not os.getenv('GAE_ENV', '').startswith('standard')
+app = wsgi.WSGIApplication(handlers=handlers, template_path=constants.VIEWS_PATH, debug=debug,
+    static_path=constants.STATIC_PATH, cookie_secret=constants.SESSION_KEY,
+    xsrf_cookies=True, login_url='/user/login')
 
-if not os.environ.get('SERVER_SOFTWARE', '').startswith('Development'):
-    # force cookies to only be sent over SSL
-    cookie_args['secure'] = True
-
-config = {'webapp2_extras.sessions': {
-    'secret_key': SESSION_KEY,
-    'cookie_args': cookie_args
-}}
-
-# make sure debug is False for production
-app = webapp2.WSGIApplication(ROUTES, config=config, debug=False)
+# uncomment this to not use dev_appserver.py for testing
+# TODO: untested, might have to set some env vars here to match Google
+# if __name__ == "__main__":
+#     from tornado import ioloop
+#     app.listen(8888)
+#     tornado.ioloop.IOLoop.current().start()

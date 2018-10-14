@@ -1,15 +1,16 @@
 service: default
-runtime: python27
+runtime: python37
 api_version: 1
 threadsafe: true
 
 default_expiration: "1000d"
 
-libraries:
-- name: webapp2
-  version: latest
-- name: jinja2
-  version: latest
+# libraries are only available in Python 2 runtimes
+# libraries:
+# - name: webapp2
+#   version: latest
+# - name: jinja2
+#   version: latest
 
 handlers:
 - url: /c
@@ -25,12 +26,9 @@ handlers:
   static_files: static/robots.txt
   upload: static/robots.txt
 
-- url: /(dev|job).*
-  script: app.app
-  login: admin
-
 - url: /.*
-  script: app.app
+  secure: always
+  script: auto
 
 error_handlers:
 - file: views/static/errors/default.html

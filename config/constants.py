@@ -3,10 +3,15 @@ import os
 APP_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 VIEWS_PATH = os.path.join(APP_PATH, 'views')
 LIB_PATH = os.path.join(APP_PATH, 'lib')
+STATIC_PATH = os.path.join(APP_PATH, 'static')
 
 # Auth
-PASSWORD_PEPPER = os.environ.get('PASSWORD_PEPPER', 'replace with the output from os.urandom(64).encode("base64")')
-SESSION_KEY = os.environ.get('SESSION_KEY', 'replace with the output from os.urandom(64).encode("base64")')
+AUTH_EXPIRES_DAYS = 14
+PASSWORD_PEPPER = os.environ.get('PASSWORD_PEPPER', b'replace with the output from base64.b64encode(os.urandom(64))')
+SESSION_KEY = os.environ.get('SESSION_KEY', b'replace with the output from base64.b64encode(os.urandom(64))')
+
+# Datastore
+DATASTORE_EMULATOR_HOST = os.environ.get('DATASTORE_EMULATOR_HOST', 'localhost:8081')
 
 # SendGrid
 # replace this with your own SendGrid API Key

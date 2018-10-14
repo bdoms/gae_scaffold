@@ -1,25 +1,25 @@
 from datetime import datetime
 
-from google.appengine.api import images
-from google.appengine.ext import blobstore
-from google.appengine.ext.webapp import blobstore_handlers
+#from google.appengine.api import images
+#from google.appengine.ext import blobstore
+#from google.appengine.ext.webapp import blobstore_handlers
 
-from base import BaseController, FormController, withUser, withoutUser, testDispatch
+from config.constants import AUTH_EXPIRES_DAYS
+from controllers.base import BaseController, FormController, withUser, withoutUser
 import model
 
-import cloudstorage as gcs
-from gae_validators import validateRequiredString, validateRequiredEmail, validateBool
+#import cloudstorage as gcs # TODO probably need to add this in requirements
+from lib.gae_validators import validateRequiredString, validateRequiredEmail, validateBool
 import httpagentparser
 
 IMAGE_TYPES = ["gif", "jpg", "jpeg", "png"]
-SESSION_MAX_AGE = 86400 * 14 # two weeks in seconds
 
 
 class BaseLoginController(FormController):
 
     def login(self, user, new=False, remember=False):
         ua = self.request.headers.get('User-Agent', '')
-        ip = self.request.remote_addr or ''
+        ip = self.request.remote_ip or ''
 
         # reject a login attempt without a user agent or IP address
         if not ua or not ip:
@@ -32,7 +32,7 @@ class BaseLoginController(FormController):
 
         if auth:
             # note that this triggers the last login auto update
-            auth.ip = ip
+            auth.update(ip=ip)
             auth.put()
         else:
             parsed = httpagentparser.detect(ua)
@@ -45,22 +45,17 @@ class BaseLoginController(FormController):
             if 'dist' in parsed:
                 # "dist" stands for "distribution" - like Android, iOS
                 device = parsed['dist']['name']
-            auth = model.Auth(user_agent=ua, os=os, browser=browser, device=device, ip=ip, parent=user.key)
+            auth = model.Auth.create(user_agent=ua, os=os, browser=browser, device=device, ip=ip, parent=user.key)
             auth.put()
 
-        cookie_args = self.session_store.config['cookie_args']
-        if remember:
-            cookie_args['max_age'] = SESSION_MAX_AGE
-        else:
-            # this may seem redundant but the other setting can persist so we must explicitly set this
-            cookie_args['max_age'] = None
-        self.session.setdefault('cookie_args', cookie_args)
+        # TODO: might have to set secure=False in non-production environments
+        expires_days = remember and AUTH_EXPIRES_DAYS or None
+        self.set_secure_cookie('auth_key', auth.slug, expires_days=expires_days, httponly=True) # secure=True)
 
-        self.session['auth_key'] = auth.key.urlsafe()
         self.redirect("/home")
 
 
-class IndexController(blobstore_handlers.BlobstoreUploadHandler, FormController):
+class IndexController(FormController):
 
     # TODO: need a serving URL for non-image files and this should work in prod
     # self.user.pic_url = 'https://' + self.gcs_bucket + '.storage.googleapis.com/' + rel_path
@@ -68,17 +63,16 @@ class IndexController(blobstore_handlers.BlobstoreUploadHandler, FormController)
     # this is sometimes called by the blob service, so it won't include the CSRF
     SKIP_CSRF = True
 
-    @testDispatch
     @withUser
     def get(self):
 
         self.renderTemplate('user/index.html')
 
-    @testDispatch
     @withUser
     def post(self):
 
-        if self.request.get('delete'):
+        # TODO: this needs to be adapted to not use the blob store at all
+        if self.get_argument('delete'):
             # this is called directly so we can manually check the CSRF here
             if not self.checkCSRF():
                 return self.renderError(412)
@@ -133,14 +127,14 @@ class AuthsController(FormController):
     def get(self):
 
         auths = self.user.auths
-        current_auth_key = self.session['auth_key']
+        current_auth_key = self.get_secure_cookie('auth_key')
 
         self.renderTemplate('user/auths.html', auths=auths, current_auth_key=current_auth_key)
 
     @withUser
     def post(self):
 
-        str_key = self.request.get('auth_key')
+        str_key = self.get_argument('auth_key')
 
         try:
             auth_key = model.ndb.Key(urlsafe=str_key)
@@ -263,7 +257,7 @@ class SignupController(BaseLoginController):
         else:
             password_salt, hashed_password = model.User.changePassword(valid_data["password"])
             del valid_data["password"]
-            user = model.User(password_salt=password_salt, hashed_password=hashed_password, **valid_data)
+            user = model.User.create(password_salt=password_salt, hashed_password=hashed_password, **valid_data)
             user.put()
             self.flash("success", "Thank you for signing up!")
             self.login(user, new=True)
@@ -307,15 +301,15 @@ class LogoutController(BaseController):
 
     @withUser
     def post(self):
-        str_key = self.session['auth_key']
+        str_key = self.get_secure_cookie('auth_key')
         try:
             auth_key = model.ndb.Key(urlsafe=str_key)
         except Exception:
             pass
         else:
-            self.uncache(str_key)
+            #self.uncache(str_key)
             auth_key.delete()
-        self.session.clear()
+        self.clear_all_cookies()
         self.redirect("/")
 
 
@@ -356,8 +350,8 @@ class ResetPasswordController(BaseLoginController):
     @withoutUser
     def before(self):
         is_valid = False
-        self.key = self.request.get("key")
-        self.token = self.request.get("token")
+        self.key = self.get_argument("key")
+        self.token = self.get_argument("token")
         if self.key and self.token:
             self.user = model.getByKey(self.key)
             if self.user and self.user.token and self.token == self.user.token:

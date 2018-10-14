@@ -26,7 +26,8 @@ This is a purposeful decision in order to stay as front-end agnostic as possible
 
 ## Setup
 
-Make sure you have Python and Google App Engine properly installed. Then...
+Make sure you have [Python](https://www.python.org/) and
+[Google App Engine](https://cloud.google.com/appengine/docs/standard/python3/) properly installed.
 
 ### Get GAE Scaffold
 
@@ -39,7 +40,7 @@ git clone --recursive https://github.com/bdoms/gae_scaffold.git
 After that to track or save progress to your own repo just change the remote:
 
 ```bash
-git remote set-url origin http://path.to.you.server/project
+git remote set-url origin http://path.to.your.server/project
 ```
 
 If you don't want to retain the scaffold's history as part of your project I recommend this one line squash:
@@ -53,7 +54,7 @@ git reset $(git commit-tree HEAD^{tree} -m "Initial commit.")
 These are required to run tests, but are not needed to run the server and aren't included during deployment.
 
 ```bash
-pip install -r requirements.txt -t lib/pip
+pip install -r testing_requirements.txt -t lib/testing
 ```
 
 
@@ -83,15 +84,31 @@ pip install -r requirements.txt -t lib/pip
  * After updating production, clear memcache via `/dev` (or the GAE dashboard) in order to ensure that old pages aren't still cached
 
 
+### Python 2
+
+GAE Scaffold now defaults to using the Python 3 runtime.
+If you wish to use the legacy Python 2 code instead, you should switch to the `python2` branch in the git repo.
+
+
 ### Common Commands
 
 #### Run Development Server
+
+You must run the datastore local emulator locally as well:
+
+```bash
+gcloud beta emulators datastore start
+```
+
+That will prompt you to install it if you haven't already.
+Then separately, while that's running:
 
 ```bash
 dev_appserver.py app.yaml
 ```
 
-This starts a server running at http://localhost:8080/
+This starts a server running at a random port determined by gunicorn.
+The `--port` argument is used for the internal server that gunicorn points to, and we can't access it directly.
 
 #### Run Tests
 

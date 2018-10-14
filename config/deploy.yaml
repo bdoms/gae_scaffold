@@ -25,6 +25,6 @@ branch_lists:
 
 static_dirs:
 - path: static/c
-  rel: static
+#  rel: static
 - path: static/j
-  rel: static
+#  rel: static

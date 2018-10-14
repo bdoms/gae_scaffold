@@ -2,110 +2,125 @@
 
 # python imports
 import base64
+import http.client
 import json
 import logging
 import os
 
 # app engine api imports
-from google.appengine.api import app_identity, memcache, taskqueue, users
+#from google.appengine.api import app_identity, memcache, taskqueue, users
+from tornado import web
 
 # app engine included libraries imports
-import jinja2
-import webapp2
-from webapp2_extras import sessions
+#import jinja2
 
 # local imports
 import helpers
 import model
-from config.constants import VIEWS_PATH, SUPPORT_EMAIL
+from config.constants import VIEWS_PATH, AUTH_EXPIRES_DAYS, SUPPORT_EMAIL
 
 # lib imports
-from gae_html import cacheAndRender # NOQA: F401
+#from lib.gae_html import cacheAndRender # NOQA: F401
 
 
-class BaseController(webapp2.RequestHandler):
+class BaseController(web.RequestHandler):
 
-    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(VIEWS_PATH))
+    #jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(VIEWS_PATH))
 
     # include global template variables that don't change across requests here
-    jinja_env.globals.update({'h': helpers})
+    #jinja_env.globals.update({'h': helpers})
 
     SKIP_CSRF = False
 
-    def checkCSRF(self):
-        csrf = self.session.get('csrf')
-        if csrf and csrf == self.request.get('csrf'):
-            # check passed, so rotate the value
-            self.session['csrf'] = os.urandom(32).encode('base64').replace('\n', '')
-            return True
-        else:
-            logging.warning('CSRF Check Failed')
-            return False
+    #def checkCSRF(self):
+        # csrf = self.session.get('csrf')
+        # if csrf and csrf == self.request.get('csrf'):
+        #     # check passed, so rotate the value
+        #     self.session['csrf'] = os.urandom(32).encode('base64').replace('\n', '')
+        #     return True
+        # else:
+        #     logging.warning('CSRF Check Failed')
+        #     return False
 
-    def dispatch(self):
+    def prepare(self):
         # get a session store for this request
-        self.session_store = sessions.get_store(request=self.request)
+        session = self.get_secure_cookie('session')
+        if session:
+            self.session = json.loads(session)
+        else:
+            self.session = {}
 
+        self.user = self.user()
+
+        # TODO: is this handled automatically now?
         # always check CSRF if this is a post unless explicitly disabled
-        if self.request.method == 'POST' and not self.SKIP_CSRF:
-            if not self.checkCSRF():
-                return self.renderError(412)
+        #if self.request.method == 'POST' and not self.SKIP_CSRF:
+        #    if not self.checkCSRF():
+        #        return self.renderError(412)
 
         if hasattr(self, "before"):
             try:
-                self.before(*self.request.route_args, **self.request.route_kwargs)
+                self.before(*self.request.path_args, **self.request.path_kwargs)
             except Exception as e:
                 self.handle_exception(e, False)
 
-        # only run the regular action if there isn't already an error or redirect
-        if self.response.status_int == 200:
-            webapp2.RequestHandler.dispatch(self)
+        # don't run the regular action if there's already an error or redirect
+        status_int = self.get_status()
+        if status_int < 200 or status_int > 299:
+            raise web.Finish
 
-            if hasattr(self, "after"):
-                try:
-                    self.after(*self.request.route_args, **self.request.route_kwargs)
-                except Exception as e:
-                    self.handle_exception(e, False)
+    def on_finish(self):
+        # NOTE that cookies set here (or in the after method) aren't returned in the response, so they won't be set
+        # this should be used for server-side cleanup only - assume that the response cannot be modified at this point
+        # sadly attempts to do so won't throw any errors, but the browser won't see it (silent failure)
+        if hasattr(self, "after"):
+            try:
+                self.after(*self.request.path_args, **self.request.path_kwargs)
+            except Exception as e:
+                self.handle_exception(e, False)
 
-        # save all sessions
-        self.session_store.save_sessions(self.response)
+    def saveSession(self):
+        # this needs to be called anywhere we're finishing the response (rendering, redirecting, etc.)
+        # FUTURE: optimize slightly by only doing this if the session has been modified
+        #         tried something simply like `if self.session != self.orig_session:` and the cookie was never set
+        self.set_secure_cookie('session', json.dumps(self.session), expires_days=AUTH_EXPIRES_DAYS,
+            httponly=True, secure=True)
 
-    @webapp2.cached_property
-    def session(self):
-        # uses the default cookie key
-        return self.session_store.get_session()
-
-    @webapp2.cached_property
+    @property
     def gcs_bucket(self):
-        # this needs to change if not using the default bucket
-        return app_identity.get_default_gcs_bucket_name()
+       # this needs to change if not using the default bucket
+       #return app_identity.get_default_gcs_bucket_name()
+       # TODO
+       return 'test'
 
     def flash(self, level, message):
         self.session["flash"] = {"level": level, "message": message}
 
     def compileTemplate(self, filename, **kwargs):
-        template = self.jinja_env.get_template(filename)
+        #template = self.jinja_env.get_template(filename)
 
         # add some standard variables
-        kwargs["user"] = user = self.user
-        kwargs["is_admin"] = user and user.is_admin
-        kwargs["is_dev"] = users.is_current_user_admin()
+        kwargs["user"] = self.user
+        kwargs["is_admin"] = self.user and self.user.is_admin
+        kwargs["is_dev"] = False # TODO
         kwargs["form"] = self.session.pop("form_data", {})
         kwargs["errors"] = self.session.pop("errors", {})
+        kwargs["h"] = helpers
+        kwargs["page_title"] = kwargs.get("page_title", "")
 
         # flashes are a dict with two properties: {"level": "info|success|error", "message": "str"}
         kwargs["flash"] = self.session.pop("flash", {})
 
         # add CSRF if it doesn't already exist
-        csrf = self.session.get('csrf')
-        if not csrf:
-            csrf = os.urandom(32).encode('base64').replace('\n', '')
-            self.session['csrf'] = csrf
-        kwargs['csrf'] = csrf
+        # csrf = self.session.get('csrf')
+        # if not csrf:
+        #     csrf = base64.b64encode(os.urandom(32)).decode('utf8').replace('\n', '')
+        #     self.session['csrf'] = csrf
+        # kwargs['csrf'] = csrf
 
-        return template.render(kwargs)
+        return self.render_string(filename, **kwargs)
 
-    def render(self, content):
+    def securityHeaders(self):
         # uncomment to enable HSTS - note that it can have permanent consequences for your domain
         # this header is removed from non appspot domains - a custom domain must be whitelisted first
         # see https://code.google.com/p/googleappengine/issues/detail?id=7427
@@ -116,33 +131,41 @@ class BaseController(webapp2.RequestHandler):
         # see https://developers.google.com/web/fundamentals/security/csp/
         CSP = "default-src 'self'; form-action 'self'; "
         CSP += "base-uri 'none'; frame-ancestors 'none'; object-src 'none';"
-        CSP += "report-uri " + self.request.host_url + "/policyviolation"
-        self.response.headers['Content-Security-Policy'] = CSP
-
-        self.response.out.write(content)
+        CSP += "report-uri " + self.request.host + "/policyviolation"
+        self.set_header('Content-Security-Policy', CSP)
 
     def renderTemplate(self, filename, **kwargs):
         if self.request.method != 'HEAD':
-            self.render(self.compileTemplate(filename, **kwargs))
+            self.securityHeaders()
+            # could have compile call `self.render` but it looks like a lot of extra processing we don't need
+            self.write(self.compileTemplate(filename, **kwargs))
+            self.saveSession()
 
     def renderError(self, status_int, stacktrace=None):
-        self.response.set_status(status_int)
-        page_title = "Error " + str(status_int) + ": " + self.response.http_status_message(status_int)
+        self.set_status(status_int)
+        page_title = "Error " + str(status_int) + ": " + http.client.responses[status_int]
         self.renderTemplate("error.html", stacktrace=stacktrace, page_title=page_title)
 
     def renderJSON(self, data):
-        self.response.headers['Content-Type'] = "application/json"
+        self.set_header('Content-Type', 'application/json')
         if self.request.method != 'HEAD':
-            self.render(json.dumps(data, ensure_ascii=False, encoding='utf-8'))
+            #self.write(json.dumps(data, ensure_ascii=False, encoding='utf-8'))
+            self.render(data)
+            self.saveSession()
 
     def head(self, *args):
         # support HEAD requests in a generic way
         if hasattr(self, 'get'):
             self.get(*args)
             # the output may be cached, but don't send it to save bandwidth
-            self.response.clear()
+            self.clear()
         else:
             self.renderError(405)
+
+    def redirect(self, *args, **kwargs):
+        # saving the session needs to happen before the redirect for the cookies to be set
+        self.saveSession()
+        super(BaseController, self).redirect(*args, **kwargs)
 
     def redisplay(self, form_data=None, errors=None, url=None):
         """ redirects to the current page by default """
@@ -150,6 +173,7 @@ class BaseController(webapp2.RequestHandler):
             self.session["form_data"] = form_data
         if errors is not None:
             self.session["errors"] = errors
+
         if url:
             self.redirect(url)
         else:
@@ -180,25 +204,27 @@ class BaseController(webapp2.RequestHandler):
             user=self.user, url=self.request.url, method=self.request.method)
 
     def cache(self, key, function, expires=86400):
-        value = memcache.get(key)
-        if value is None:
-            value = function()
-            memcache.add(key, value, expires)
-        return value
+        # value = memcache.get(key)
+        # if value is None:
+        #     value = function()
+        #     memcache.add(key, value, expires)
+        # return value
+        return function() # TODO: effectively a no-op until we figure out a caching solution
 
     def uncache(self, key, seconds=10):
-        memcache.delete(key, seconds=seconds)
+        #memcache.delete(key, seconds=seconds)
+        pass
 
-    @webapp2.cached_property
     def user(self):
         user = None
-        if 'auth_key' in self.session:
-            str_key = self.session['auth_key']
-            auth = model.getByKey(str_key)
+        slug = self.get_secure_cookie('auth_key')
+        if slug:
+            # secure cookies appear to always return bytes, and we need a string, so force it here
+            auth = model.Auth.getBySlug(slug.decode(), parent_class=model.User)
             if auth:
                 user = auth.user
             else:
-                del self.session['auth_key']
+                self.clear_cookie('auth_key')
 
         return user
 
@@ -211,12 +237,11 @@ class BaseController(webapp2.RequestHandler):
         # this supports passing a template as well as a file
         if isinstance(filename, basestring):
             filename = "emails/" + filename
-        template = self.jinja_env.get_template(filename)
 
         # support passing in a custom host to prefix link
         if "host" not in kwargs:
             kwargs["host"] = self.request.host_url
-        params['html'] = template.render(kwargs)
+        params['html'] = self.render_string(kwargs)
 
         if attachments:
             # attachments might contain binary data, which must be encoded to transport in the queue
@@ -224,7 +249,8 @@ class BaseController(webapp2.RequestHandler):
                 attachment['content'] = base64.b64encode(attachment['content'])
             params['attachments'] = json.dumps(attachments)
 
-        taskqueue.add(url='/job/email', params=params, queue_name='mail')
+        # TODO: solution for this?
+        #taskqueue.add(url='/job/email', params=params, queue_name='mail')
 
 
 class FormController(BaseController):
@@ -239,7 +265,7 @@ class FormController(BaseController):
 
         for name, validator in self.FIELDS.items():
             try:
-                form_data[name] = self.request.get(name)
+                form_data[name] = self.get_argument(name, default='')
             except UnicodeDecodeError:
                 return self.renderError(400)
 
@@ -252,6 +278,7 @@ class FormController(BaseController):
         return form_data, errors, valid_data
 
 
+# TODO: switch to built in tornado decorator for authorization
 def withUser(action):
     def decorate(*args, **kwargs):
         controller = args[0]
@@ -290,31 +317,4 @@ def validateReferer(action):
         if not referer.startswith("http://" + controller.request.headers.get("host")):
             return controller.renderError(400)
         return action(*args, **kwargs)
-    return decorate
-
-
-# NOTE: because of how chaining of __init__ and private (double underscore) variables work with multiple inheritance
-#       (see http://stackoverflow.com/questions/8688114/python-multi-inheritance-init)
-#       the blobstore UploadHandler must come first. On the server (both dev and prod) everything works as expected,
-#       but webtest uses the first webapp platform it encounters, which is webapp 1 for the UploadHandler,
-#       (whereas the BaseController uses webapp2) and webapp 1 doesn't use the dispatch method
-#       which is why we have this custom second-level decorator defined to call it manually.
-def testDispatch(action):
-
-    class MockApp(object):
-        debug = True
-
-    def decorate(*args, **kwargs):
-        if helpers.testing():
-            controller = args[0]
-            # this will go into an infinite loop of dispatching itself if we don't stop it
-            if hasattr(controller, 'dispatch_called'):
-                return action(*args, **kwargs)
-            else:
-                controller.app = MockApp()
-                controller.dispatch_called = True
-                controller.dispatch()
-        else:
-            return action(*args, **kwargs)
-
     return decorate

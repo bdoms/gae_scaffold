@@ -3,6 +3,7 @@
 *.min.js
 
 lib/pip
+lib/testing
 
 config/vars.yaml
 static/robots.txt

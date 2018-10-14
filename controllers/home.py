@@ -1,4 +1,4 @@
-from base import BaseController, withUser
+from controllers.base import BaseController, withUser
 
 
 class HomeController(BaseController):

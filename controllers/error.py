@@ -1,6 +1,6 @@
 import logging
 
-from base import BaseController
+from controllers.base import BaseController
 from config.constants import SUPPORT_EMAIL
 
 

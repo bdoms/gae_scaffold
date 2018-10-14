@@ -13,14 +13,14 @@ dev_appserver.fix_sys_path()
 
 # fix_sys_path removes the current working directory, so we add it back in
 sys.path.append('.')
-sys.path.append(os.path.join('lib', 'pip', 'webtest'))
+sys.path.append(os.path.join('lib', 'testing', 'webtest'))
 
 # import and run config so this env matches the normal one
 import appengine_config # NOQA: E402
 (appengine_config)
 
 # this needs to be added to the virtualenv like a vendor in order to be found
-appengine_config.vendor.add(os.path.join('lib', 'pip'))
+appengine_config.vendor.add(os.path.join('lib', 'testing'))
 
 # must come after pip is added above
 from flake8.main import application # NOQA: E402
