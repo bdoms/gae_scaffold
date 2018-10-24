@@ -1,4 +1,4 @@
-{% extends "emails/base.html" %}
+{% extends "base.html" %}
 {% block content %}
 
 <p>A User Has Experienced an Error</p>
@@ -6,7 +6,7 @@
 <ul>
     <li>User: {{user and user.email or 'None'}}</li>
     <li>URL: {{method}} {{url}}</li>
-    <li>Error Message: {{exception.message}}</li>
+    <li>Error Message: {{message}}</li>
 </ul>
 
 {% end %}

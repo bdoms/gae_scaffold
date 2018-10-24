@@ -1,13 +1,12 @@
 #from google.appengine.ext import blobstore
 
-from controllers.base import BaseController, withUser
+from controllers.base import BaseController
 
 SIZE_LIMIT = 10 * (2 ** 20) # 10 MB
 
 
 class UploadController(BaseController):
 
-    @withUser
     def post(self):
 
         # takes a url to redirect to after upload, returns a valid blobstore upload url

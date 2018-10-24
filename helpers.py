@@ -2,15 +2,13 @@ import os
 import re
 from urllib.parse import quote_plus
 
-#from google.appengine.api import memcache, users
+from lib.gae_deploy import static, script, style # NOQA: F401
 
-from lib.gae_deploy import static, script, style, DEBUG # NOQA: F401
-
+DEBUG = os.getenv('GAE_ENV', 'localdev').startswith('localdev') # "standard" on production (maybe "flexible" too?)
 TESTING = '(testbed)' in os.environ.get('SERVER_SOFTWARE', '')
 
 
 def debug():
-    # determine whether we're serving on development or production
     return DEBUG
 
 
@@ -110,16 +108,3 @@ def int_comma(i):
         groups.append(s[-3:])
         s = s[:-3]
     return s + ','.join(reversed(groups))
-
-
-# def get_cache(key):
-#     value = memcache.get(key)
-#     # don't use cached versions in development or for admins
-#     if value and not debug() and not users.is_current_user_admin():
-#         return value
-#     return None
-#
-#
-# def store_cache(key, value, expires=86400): # cache for 1 day by default
-#     if not users.is_current_user_admin(): # don't cache the admin version of a page
-#         memcache.add(key, value, expires)

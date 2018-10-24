@@ -7,7 +7,7 @@ from config.constants import SUPPORT_EMAIL
 class ErrorController(BaseController):
     """ handles any page that falls through the rest of config.ROUTES """
 
-    def get(self, invalid_path):
+    def get(self, *args):
 
         self.renderError(404)
 
@@ -16,7 +16,8 @@ class LogErrorController(BaseController):
     """ called via AJAX to log when static error pages get displayed """
 
     # called from a static page so it won't know CSRF
-    SKIP_CSRF = True
+    def check_xsrf_cookie(self):
+        pass
 
     def post(self):
         reason = self.request.get('javascript', '')
@@ -39,7 +40,8 @@ class PolicyViolationController(BaseController):
     """ called by the browser to report when a resource violates the CSP """
 
     # called by the browser so it won't know CSRF
-    SKIP_CSRF = True
+    def check_xsrf_cookie(self):
+        pass
 
     def post(self):
         exception = PolicyViolationError(self.request.body)

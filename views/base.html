@@ -33,7 +33,7 @@
 
     <nav>
         <ul>
-            {% if user %}
+            {% if current_user %}
                 {% if is_dev %}
                     <li><a href="/dev">Dev</a></li>
                 {% end %}
@@ -73,7 +73,7 @@
 
     {% raw h.script('/static/j/main.js') %}
 
-    {% if not h.debug() %}
+    {% if not debug %}
         {#
             include third-party scripts for tracking or advertising here
             be sure to modify the CSP header in `controllers/base.py` if you add from a new source

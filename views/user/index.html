@@ -5,8 +5,8 @@
 
 <p>
     Profile Picture:
-    {% if user.pic_url %}
-        <img src="{{user.pic_url}}=s100" alt="Profile Pic" />
+    {% if current_user.pic_url %}
+        <img src="{{current_user.pic_url}}=s100" alt="Profile Pic" />
         <form method="post" action="">
             {% raw xsrf_form_html() %}
             <input type="hidden" name="delete" value="1" />

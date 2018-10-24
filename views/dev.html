@@ -1,4 +1,4 @@
-{% extends "/base.html" %}
+{% extends "base.html" %}
 {% block content %}
 
 <h2>Dev</h2>
@@ -7,7 +7,9 @@
 
 <h3>Environment</h3>
 
-<p>Namespace: {{namespace}}</p>
+<p>Service: {{service}}</p>
+
+<p>Version: {{version}}</p>
 
 <h3>Actions</h3>
 
@@ -17,7 +19,7 @@
 
     {% if errors.get('exists') %}
         <p class="error">There is no user associated with that email address.</p>
-    {% endif %}
+    {% end %}
 
     <p>
         <label for="email">Email</label>
@@ -25,15 +27,7 @@
         <input type="submit" value="Make User an Admin"/>
         {% if errors.get('email') %}
             <span class="error">Please enter a valid email.</span>
-        {% endif %}
-    </p>
-</form>
-
-<form action="" method="post">
-    {% raw xsrf_form_html() %}
-    <input type="hidden" name="memcache" value="1"/>
-    <p>
-        <input type="submit" value="Clear Memcache"/>
+        {% end %}
     </p>
 </form>
 
@@ -45,7 +39,7 @@
     </p>
 </form>
 
-{% if h.debug() %}
+{% if debug %}
     <h3>Development Only</h3>
 
     <form action="" method="post">
@@ -55,6 +49,6 @@
             <input type="submit" value="Reset Data"/>
         </p>
     </form>
-{% endif %}
+{% end %}
 
-{% endblock %}
+{% end %}

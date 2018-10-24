@@ -6,7 +6,7 @@ LIB_PATH = os.path.join(APP_PATH, 'lib')
 STATIC_PATH = os.path.join(APP_PATH, 'static')
 
 # Auth
-AUTH_EXPIRES_DAYS = 14
+AUTH_EXPIRES_DAYS = 14 # max allowed by App Engine
 PASSWORD_PEPPER = os.environ.get('PASSWORD_PEPPER', b'replace with the output from base64.b64encode(os.urandom(64))')
 SESSION_KEY = os.environ.get('SESSION_KEY', b'replace with the output from base64.b64encode(os.urandom(64))')
 

@@ -4,22 +4,25 @@ import os
 from datetime import datetime
 from hashlib import sha512
 
-from config.constants import PASSWORD_PEPPER, DATASTORE_EMULATOR_HOST
-
-#from google.appengine.api import memcache
-#from google.appengine.ext import ndb
 from google.cloud import datastore
 
-# TODO: this should be within a check for the dev env
-# have to mock the call because dev_appserver doesn't properly set up the app engine environment (yet)
-# note that using mock.patch doesn't seem to work here (don't know why)
-import mock
-import google.auth
-from google.auth import credentials
-creds = mock.Mock(spec=credentials.Credentials)
-google.auth.default = lambda: (creds, os.getenv('GOOGLE_CLOUD_PROJECT', 'test'))
+from config.constants import PASSWORD_PEPPER, DATASTORE_EMULATOR_HOST
+import helpers
 
-os.environ['DATASTORE_EMULATOR_HOST'] = DATASTORE_EMULATOR_HOST
+if helpers.debug():
+    # TODO: this should be within a check for the dev env
+    # have to mock the call because dev_appserver doesn't properly set up the app engine environment (yet)
+    # note that using mock.patch doesn't seem to work here (don't know why)
+    import mock
+    import google.auth
+    from google.auth import credentials
+    creds = mock.Mock(spec=credentials.Credentials)
+    google.auth.default = lambda: (creds, os.getenv('GOOGLE_CLOUD_PROJECT', 'test'))
+
+    os.environ['DATASTORE_EMULATOR_HOST'] = DATASTORE_EMULATOR_HOST
+
+# NOTE if you want to do different namespaces you can pass one to the client here and it'll use it by default
+
 # https://googleapis.github.io/google-cloud-python/latest/datastore/client.html
 db = datastore.Client() # credentials=creds, #project='test')
 
@@ -56,7 +59,7 @@ class BaseModel(object):
             elif hasattr(prop_object, 'auto_now'):
                 data[prop] = datetime.utcnow()
 
-        self.entity.update(kwargs)
+        self.entity.update(data)
         self._updateProps()
 
     @classmethod
@@ -192,7 +195,7 @@ class User(BaseModel):
 
     @property
     def auths(self):
-        return Auth.query(ancestor=self.key).order('-last_login')
+        return Auth.query(ancestor=self.key, order=['-last_login']).fetch()
 
     @classmethod
     def getByEmail(cls, email):
@@ -220,7 +223,6 @@ class User(BaseModel):
         self.token = base64.urlsafe_b64encode(os.urandom(16)).replace('=', '')
         self.token_date = datetime.utcnow()
         self.put()
-        uncache(self.slug)
         return self
 
 
@@ -242,32 +244,3 @@ class Auth(BaseModel):
     def slug(self):
         path = self.key.flat_path
         return str(path[1]) + '.' + str(path[3])
-
-
-# model helper functions
-# def getByKey(str_key):
-#     entity = None
-#     if str_key:
-#         #entity = memcache.get(str_key)
-#         #if not entity:
-#         try:
-#             key = Key(urlsafe=str_key)
-#         except Exception:
-#             pass
-#         else:
-#             entity = key.get()
-#             #if entity:
-#             #    memcache.add(str_key, entity)
-#     return entity
-
-
-# def cache(key, function, expires=86400):
-#     value = memcache.get(key)
-#     if value is None:
-#         value = function()
-#         memcache.add(key, value, expires)
-#     return value
-#
-#
-# def uncache(key, seconds=10):
-#     memcache.delete(key, seconds=seconds)

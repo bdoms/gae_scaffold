@@ -1,41 +1,33 @@
 service: default
 runtime: python27
-api_version: 1
-threadsafe: true
 
 includes:
 - config/vars.yaml
 
 default_expiration: "1000d"
 
-libraries:
-- name: webapp2
-  version: latest
-- name: jinja2
-  version: latest
-
 handlers:
 - url: /c
   static_dir: static/c
+  secure: always
 - url: /i
   static_dir: static/i
+  secure: always
 - url: /j
   static_dir: static/j
+  secure: always
 - url: /favicon.ico
   static_files: static/i/favicon.png
   upload: static/i/favicon.png
+  secure: always
 - url: /robots.txt
   static_files: static/robots.txt
   upload: static/robots.txt
-
-- url: /(dev|job).*
-  script: app.app
-  login: admin
   secure: always
 
 - url: /.*
-  script: app.app
   secure: always
+  script: auto
 
 error_handlers:
 - file: views/static/errors/default.html

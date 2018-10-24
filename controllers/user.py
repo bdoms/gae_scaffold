@@ -1,16 +1,13 @@
 from datetime import datetime
 
-#from google.appengine.api import images
-#from google.appengine.ext import blobstore
-#from google.appengine.ext.webapp import blobstore_handlers
-
 from config.constants import AUTH_EXPIRES_DAYS
-from controllers.base import BaseController, FormController, withUser, withoutUser
+from controllers.base import BaseController, FormController, withoutUser
 import model
 
 #import cloudstorage as gcs # TODO probably need to add this in requirements
 from lib.gae_validators import validateRequiredString, validateRequiredEmail, validateBool
 import httpagentparser
+from tornado import web
 
 IMAGE_TYPES = ["gif", "jpg", "jpeg", "png"]
 
@@ -48,9 +45,12 @@ class BaseLoginController(FormController):
             auth = model.Auth.create(user_agent=ua, os=os, browser=browser, device=device, ip=ip, parent=user.key)
             auth.put()
 
-        # TODO: might have to set secure=False in non-production environments
+        # TODO: auth.slug is causing an error here the first time it's called after creating a new auth
+        #       looks like db doesn't have an id for the auth yet (force allocating it? or wait for it to return?)
+
         expires_days = remember and AUTH_EXPIRES_DAYS or None
-        self.set_secure_cookie('auth_key', auth.slug, expires_days=expires_days, httponly=True) # secure=True)
+        self.set_secure_cookie('auth_key', auth.slug, expires_days=expires_days, httponly=True,
+            secure=not self.debug)
 
         self.redirect("/home")
 
@@ -58,17 +58,17 @@ class BaseLoginController(FormController):
 class IndexController(FormController):
 
     # TODO: need a serving URL for non-image files and this should work in prod
-    # self.user.pic_url = 'https://' + self.gcs_bucket + '.storage.googleapis.com/' + rel_path
+    # self.current_user.pic_url = 'https://' + self.gcs_bucket + '.storage.googleapis.com/' + rel_path
 
     # this is sometimes called by the blob service, so it won't include the CSRF
     SKIP_CSRF = True
 
-    @withUser
+    @web.authenticated
     def get(self):
 
         self.renderTemplate('user/index.html')
 
-    @withUser
+    @web.authenticated
     def post(self):
 
         # TODO: this needs to be adapted to not use the blob store at all
@@ -77,19 +77,19 @@ class IndexController(FormController):
             if not self.checkCSRF():
                 return self.renderError(412)
 
-            if self.user.pic_gcs:
-                path = self.user.pic_gcs
+            if self.current_user.pic_gcs:
+                path = self.current_user.pic_gcs
                 if path.startswith('/gs/'):
                     path = path[3:]
                 gcs.delete(path)
-            if self.user.pic_url:
-                images.delete_serving_url(self.user.pic_blob)
-            if self.user.pic_blob:
-                blobstore.delete(self.user.pic_blob)
+            if self.current_user.pic_url:
+                images.delete_serving_url(self.current_user.pic_blob)
+            if self.current_user.pic_blob:
+                blobstore.delete(self.current_user.pic_blob)
 
-            self.user.pic_gcs = None
-            self.user.pic_blob = None
-            self.user.pic_url = None
+            self.current_user.pic_gcs = None
+            self.current_user.pic_blob = None
+            self.current_user.pic_url = None
         else:
             errors = {}
             uploads = self.get_uploads()
@@ -104,34 +104,34 @@ class IndexController(FormController):
 
                 try:
                     # note that this serving URL supports size and crop query params
-                    self.user.pic_url = images.get_serving_url(upload, secure_url=True)
+                    self.current_user.pic_url = images.get_serving_url(upload, secure_url=True)
                 except images.TransformationError:
                     upload.delete()
                     errors = {'corrupt': True}
                     continue
 
-                self.user.pic_gcs = upload.gs_object_name
-                self.user.pic_blob = upload.key()
+                self.current_user.pic_gcs = upload.gs_object_name
+                self.current_user.pic_blob = upload.key()
 
             if errors:
                 return self.redisplay({}, errors)
 
-        self.user.put()
-        self.uncache(self.user.slug)
+        self.current_user.put()
+        self.uncache(self.current_user.slug)
         self.redisplay()
 
 
 class AuthsController(FormController):
 
-    @withUser
+    @web.authenticated
     def get(self):
 
-        auths = self.user.auths
+        auths = self.current_user.auths
         current_auth_key = self.get_secure_cookie('auth_key')
 
         self.renderTemplate('user/auths.html', auths=auths, current_auth_key=current_auth_key)
 
-    @withUser
+    @web.authenticated
     def post(self):
 
         str_key = self.get_argument('auth_key')
@@ -143,7 +143,7 @@ class AuthsController(FormController):
             # see https://github.com/googlecloudplatform/datastore-ndb-python/issues/143
             self.flash('error', 'Invalid session.')
         else:
-            if auth_key.parent() != self.user.key:
+            if auth_key.parent() != self.current_user.key:
                 return self.renderError(403)
             else:
                 self.uncache(str_key)
@@ -157,18 +157,18 @@ class EmailController(FormController):
 
     FIELDS = {"email": validateRequiredEmail, "password": validateRequiredString}
 
-    @withUser
+    @web.authenticated
     def get(self):
 
         self.renderTemplate('user/email.html')
 
-    @withUser
+    @web.authenticated
     def post(self):
 
         form_data, errors, valid_data = self.validate()
 
-        hashed_password = model.User.hashPassword(valid_data["password"], self.user.password_salt)
-        if hashed_password != self.user.hashed_password:
+        hashed_password = model.User.hashPassword(valid_data["password"], self.current_user.password_salt)
+        if hashed_password != self.current_user.hashed_password:
             errors["match"] = True
 
         # extra validation to make sure that email address isn't already in use
@@ -184,9 +184,9 @@ class EmailController(FormController):
             del form_data["password"] # never send password back for security
             self.redisplay(form_data, errors)
         else:
-            self.user.email = email
-            self.user.put()
-            self.uncache(self.user.slug)
+            self.current_user.update(email=email)
+            self.current_user.put()
+            self.uncache(self.current_user.slug)
 
             self.flash("success", "Email changed successfully.")
             self.redirect("/user")
@@ -196,18 +196,18 @@ class PasswordController(FormController):
 
     FIELDS = {"password": validateRequiredString, "new_password": validateRequiredString}
 
-    @withUser
+    @web.authenticated
     def get(self):
 
         self.renderTemplate('user/password.html')
 
-    @withUser
+    @web.authenticated
     def post(self):
 
         form_data, errors, valid_data = self.validate()
 
-        hashed_password = model.User.hashPassword(valid_data["password"], self.user.password_salt)
-        if hashed_password != self.user.hashed_password:
+        hashed_password = model.User.hashPassword(valid_data["password"], self.current_user.password_salt)
+        if hashed_password != self.current_user.hashed_password:
             errors["match"] = True
 
         if errors:
@@ -217,9 +217,9 @@ class PasswordController(FormController):
         else:
             password_salt, hashed_password = model.User.changePassword(valid_data["new_password"])
 
-            self.user.populate(password_salt=password_salt, hashed_password=hashed_password)
-            self.user.put()
-            self.uncache(self.user.slug)
+            self.current_user.update(password_salt=password_salt, hashed_password=hashed_password)
+            self.current_user.put()
+            self.uncache(self.current_user.slug)
 
             self.flash("success", "Password changed successfully.")
             self.redirect("/user")
@@ -299,7 +299,7 @@ class LoginController(BaseLoginController):
 
 class LogoutController(BaseController):
 
-    @withUser
+    @web.authenticated
     def post(self):
         str_key = self.get_secure_cookie('auth_key')
         try:
@@ -307,8 +307,8 @@ class LogoutController(BaseController):
         except Exception:
             pass
         else:
-            #self.uncache(str_key)
-            auth_key.delete()
+            # self.uncache(str_key)
+            db.delete(auth_key)
         self.clear_all_cookies()
         self.redirect("/")
 
@@ -353,10 +353,10 @@ class ResetPasswordController(BaseLoginController):
         self.key = self.get_argument("key")
         self.token = self.get_argument("token")
         if self.key and self.token:
-            self.user = model.getByKey(self.key)
-            if self.user and self.user.token and self.token == self.user.token:
+            self.current_user = model.getByKey(self.key)
+            if self.current_user and self.current_user.token and self.token == self.current_user.token:
                 # token is valid for one hour
-                if (datetime.utcnow() - self.user.token_date).total_seconds() < 3600:
+                if (datetime.utcnow() - self.current_user.token_date).total_seconds() < 3600:
                     is_valid = True
 
         if not is_valid:
@@ -376,13 +376,13 @@ class ResetPasswordController(BaseLoginController):
         else:
             password_salt, hashed_password = model.User.changePassword(valid_data["password"])
             del valid_data["password"]
-            self.user.password_salt = password_salt
-            self.user.hashed_password = hashed_password
-            self.user.token = None
-            self.user.token_date = None
-            self.user.put()
+            self.current_user.password_salt = password_salt
+            self.current_user.hashed_password = hashed_password
+            self.current_user.token = None
+            self.current_user.token_date = None
+            self.current_user.put()
 
             # need to uncache so that changes to the user object get picked up by memcache
-            self.uncache(self.key)
+            self.uncache(self.current_user.slug)
             self.flash("success", "Your password has been changed. You have been logged in with your new password.")
-            self.login(self.user)
+            self.login(self.current_user)

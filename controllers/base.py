@@ -7,12 +7,8 @@ import json
 import logging
 import os
 
-# app engine api imports
-#from google.appengine.api import app_identity, memcache, taskqueue, users
+# library imports
 from tornado import web
-
-# app engine included libraries imports
-#import jinja2
 
 # local imports
 import helpers
@@ -20,27 +16,13 @@ import model
 from config.constants import VIEWS_PATH, AUTH_EXPIRES_DAYS, SUPPORT_EMAIL
 
 # lib imports
-#from lib.gae_html import cacheAndRender # NOQA: F401
+# from lib.gae_html import cacheAndRender # NOQA: F401
 
 
 class BaseController(web.RequestHandler):
 
-    #jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(VIEWS_PATH))
-
-    # include global template variables that don't change across requests here
-    #jinja_env.globals.update({'h': helpers})
-
-    SKIP_CSRF = False
-
-    #def checkCSRF(self):
-        # csrf = self.session.get('csrf')
-        # if csrf and csrf == self.request.get('csrf'):
-        #     # check passed, so rotate the value
-        #     self.session['csrf'] = os.urandom(32).encode('base64').replace('\n', '')
-        #     return True
-        # else:
-        #     logging.warning('CSRF Check Failed')
-        #     return False
+    def initialize(self):
+        self.debug = self.settings.get('debug', False)
 
     def prepare(self):
         # get a session store for this request
@@ -50,19 +32,11 @@ class BaseController(web.RequestHandler):
         else:
             self.session = {}
 
-        self.user = self.user()
-
-        # TODO: is this handled automatically now?
-        # always check CSRF if this is a post unless explicitly disabled
-        #if self.request.method == 'POST' and not self.SKIP_CSRF:
-        #    if not self.checkCSRF():
-        #        return self.renderError(412)
-
         if hasattr(self, "before"):
             try:
-                self.before(*self.request.path_args, **self.request.path_kwargs)
+                self.before(*self.path_args, **self.path_kwargs)
             except Exception as e:
-                self.handle_exception(e, False)
+                raise
 
         # don't run the regular action if there's already an error or redirect
         status_int = self.get_status()
@@ -77,14 +51,14 @@ class BaseController(web.RequestHandler):
             try:
                 self.after(*self.request.path_args, **self.request.path_kwargs)
             except Exception as e:
-                self.handle_exception(e, False)
+                raise
 
     def saveSession(self):
         # this needs to be called anywhere we're finishing the response (rendering, redirecting, etc.)
         # FUTURE: optimize slightly by only doing this if the session has been modified
         #         tried something simply like `if self.session != self.orig_session:` and the cookie was never set
         self.set_secure_cookie('session', json.dumps(self.session), expires_days=AUTH_EXPIRES_DAYS,
-            httponly=True, secure=True)
+            httponly=True, secure=not self.debug)
 
     @property
     def gcs_bucket(self):
@@ -97,26 +71,18 @@ class BaseController(web.RequestHandler):
         self.session["flash"] = {"level": level, "message": message}
 
     def compileTemplate(self, filename, **kwargs):
-        #template = self.jinja_env.get_template(filename)
 
         # add some standard variables
-        kwargs["user"] = self.user
-        kwargs["is_admin"] = self.user and self.user.is_admin
+        kwargs["is_admin"] = self.current_user and self.current_user.is_admin
         kwargs["is_dev"] = False # TODO
         kwargs["form"] = self.session.pop("form_data", {})
         kwargs["errors"] = self.session.pop("errors", {})
         kwargs["h"] = helpers
+        kwargs["debug"] = self.debug
         kwargs["page_title"] = kwargs.get("page_title", "")
 
         # flashes are a dict with two properties: {"level": "info|success|error", "message": "str"}
         kwargs["flash"] = self.session.pop("flash", {})
-
-        # add CSRF if it doesn't already exist
-        # csrf = self.session.get('csrf')
-        # if not csrf:
-        #     csrf = base64.b64encode(os.urandom(32)).decode('utf8').replace('\n', '')
-        #     self.session['csrf'] = csrf
-        # kwargs['csrf'] = csrf
 
         return self.render_string(filename, **kwargs)
 
@@ -150,7 +116,7 @@ class BaseController(web.RequestHandler):
         self.set_header('Content-Type', 'application/json')
         if self.request.method != 'HEAD':
             #self.write(json.dumps(data, ensure_ascii=False, encoding='utf-8'))
-            self.render(data)
+            self.write(data)
             self.saveSession()
 
     def head(self, *args):
@@ -180,28 +146,20 @@ class BaseController(web.RequestHandler):
             self.redirect(self.request.path)
 
     # this overrides the base class for handling things like 500 errors
-    def handle_exception(self, exception, debug):
-        # log the error
-        logging.exception(exception)
-
-        # if this is development, then print out a stack trace
+    def write_error(self, status_code, exc_info=None):
+        # if this is development, then include a stack trace
         stacktrace = None
-        if helpers.debug() or (self.user and self.user.is_admin):
+        message = None
+        if exc_info and (self.debug or (self.current_user and self.current_user.is_admin)):
             import traceback
-            stacktrace = traceback.format_exc()
+            stacktrace = ''.join(traceback.format_exception(*exc_info))
+            message = exc_info[0].__name__
 
-        # if the exception is a HTTPException, use its error code
-        # otherwise use a generic 500 error code
-        if isinstance(exception, webapp2.HTTPException):
-            status_int = exception.code
-        else:
-            status_int = 500
-
-        self.renderError(status_int, stacktrace=stacktrace)
+        self.renderError(status_code, stacktrace=stacktrace)
 
         # send an email notifying about this error
-        self.deferEmail([SUPPORT_EMAIL], "Error Alert", "error_alert.html", exception=exception,
-            user=self.user, url=self.request.url, method=self.request.method)
+        self.deferEmail([SUPPORT_EMAIL], "Error Alert", "error_alert.html", message=message,
+            user=self.current_user, url=self.request.full_url(), method=self.request.method)
 
     def cache(self, key, function, expires=86400):
         # value = memcache.get(key)
@@ -212,10 +170,10 @@ class BaseController(web.RequestHandler):
         return function() # TODO: effectively a no-op until we figure out a caching solution
 
     def uncache(self, key, seconds=10):
-        #memcache.delete(key, seconds=seconds)
+        # memcache.delete(key, seconds=seconds)
         pass
 
-    def user(self):
+    def get_current_user(self):
         user = None
         slug = self.get_secure_cookie('auth_key')
         if slug:
@@ -235,13 +193,13 @@ class BaseController(web.RequestHandler):
             params['reply_to'] = reply_to
 
         # this supports passing a template as well as a file
-        if isinstance(filename, basestring):
+        if isinstance(filename, str):
             filename = "emails/" + filename
 
         # support passing in a custom host to prefix link
         if "host" not in kwargs:
-            kwargs["host"] = self.request.host_url
-        params['html'] = self.render_string(kwargs)
+            kwargs["host"] = self.request.host
+        params['html'] = self.render_string(filename, **kwargs)
 
         if attachments:
             # attachments might contain binary data, which must be encoded to transport in the queue
@@ -278,22 +236,10 @@ class FormController(BaseController):
         return form_data, errors, valid_data
 
 
-# TODO: switch to built in tornado decorator for authorization
-def withUser(action):
-    def decorate(*args, **kwargs):
-        controller = args[0]
-        if controller.user:
-            return action(*args, **kwargs)
-        else:
-            url = "/user/login"
-            return controller.redirect(url)
-    return decorate
-
-
 def withoutUser(action):
     def decorate(*args, **kwargs):
         controller = args[0]
-        if not controller.user:
+        if not controller.current_user:
             return action(*args, **kwargs)
         else:
             url = "/home"

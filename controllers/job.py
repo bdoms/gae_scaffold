@@ -4,8 +4,6 @@ import json
 import logging
 import urllib.error
 
-#from google.appengine.api import mail
-
 from controllers.base import BaseController
 from config.constants import SENDGRID_API_KEY, SENDER_EMAIL
 import model
@@ -18,6 +16,9 @@ from sendgrid.helpers import mail as sgmail
 class AuthsController(BaseController):
 
     MAX_DAYS = 14
+
+    def check_xsrf_cookie(self):
+        pass
 
     def get(self):
 
@@ -32,10 +33,11 @@ class AuthsController(BaseController):
 
 class EmailController(BaseController):
 
-    # called internally
-    SKIP_CSRF = True
-
     SENDGRID = sendgrid.SendGridAPIClient(apikey=SENDGRID_API_KEY)
+
+    # called internally
+    def check_xsrf_cookie(self):
+        pass
 
     def post(self):
 
@@ -95,8 +97,7 @@ class EmailController(BaseController):
             if attachments:
                 mail_attachments = []
                 for data in attachments:
-                    mail_attachment = mail.Attachment(data['filename'], base64.b64decode(data['content']),
-                        content_id=data['content_id'])
+                    mail_attachment = [data['filename'], base64.b64decode(data['content']), data['content_id']]
                     mail_attachments.append(mail_attachment)
                 kwargs['attachments'] = mail_attachments
 
@@ -105,6 +106,7 @@ class EmailController(BaseController):
 
             for to_email in to:
                 kwargs['to'] = to_email
-                mail.send_mail(**kwargs)
+
+            logging.info(kwargs)
 
         self.render('OK')

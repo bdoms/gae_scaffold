@@ -2,6 +2,7 @@
 *.min.css
 *.min.js
 
+env
 lib/pip
 lib/testing
 

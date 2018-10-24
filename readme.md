@@ -110,6 +110,22 @@ dev_appserver.py app.yaml
 This starts a server running at a random port determined by gunicorn.
 The `--port` argument is used for the internal server that gunicorn points to, and we can't access it directly.
 
+##### Run Without dev_appserver.py
+
+If you'd like to run the app directly without relying on Google's dev_appserver.py then setup by:
+
+```bash
+virtualenv env
+source env/bin/activate
+pip install -r requirements.txt
+```
+
+And the command to run becomes:
+
+```bash
+python main.py --logging=debug
+```
+
 #### Run Tests
 
 ```bash

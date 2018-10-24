@@ -1,30 +1,26 @@
 service: default
 runtime: python37
-api_version: 1
-threadsafe: true
 
 default_expiration: "1000d"
-
-# libraries are only available in Python 2 runtimes
-# libraries:
-# - name: webapp2
-#   version: latest
-# - name: jinja2
-#   version: latest
 
 handlers:
 - url: /c
   static_dir: static/c
+  secure: always
 - url: /i
   static_dir: static/i
+  secure: always
 - url: /j
   static_dir: static/j
+  secure: always
 - url: /favicon.ico
   static_files: static/i/favicon.png
   upload: static/i/favicon.png
+  secure: always
 - url: /robots.txt
   static_files: static/robots.txt
   upload: static/robots.txt
+  secure: always
 
 - url: /.*
   secure: always
