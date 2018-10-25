@@ -29,7 +29,7 @@ class DevController(FormController):
             helpers.clear_cache()
             gae_html.clearCache()
             self.logger.info('Cleared cache.')
-            self.flash("info", "User successfully made admin.")
+            self.flash("info", "Cache Cleared")
 
         elif self.get_argument('make_admin', None):
             form_data, errors, valid_data = self.validate()
@@ -54,8 +54,9 @@ class DevController(FormController):
 
             # do migration work
             # q = model.User.query()
-            # for item in q.fetch():
-            #     modified.append(item)
+            # for entity in q.fetch():
+            #     entity = model.User.updateEntity(entity, {'prop': 'value'})
+            #     modified.append(entity)
 
             if modified:
                 model.db.put_multi(modified)
@@ -82,6 +83,7 @@ class DevController(FormController):
 
             # auto signout since the IDs and keys have all changed
             self.clear_all_cookies()
+            helpers.clear_cache()
             self.flash('info', 'Data Reset')
 
         self.redisplay()

@@ -47,7 +47,7 @@ class BaseModel(object):
         self.key = self.entity.key
 
     def update(self, **kwargs):
-        self.entity = self.__class__.updateEntity(entity, **kwargs)
+        self.entity = self.__class__.updateEntity(self.entity, **kwargs)
         self._updateProps()
 
     @classmethod
@@ -60,11 +60,15 @@ class BaseModel(object):
                 value = kwargs[prop]
                 if not prop_object.validate(value):
                     raise ValueError('"{}" is not a valid "{}"'.format(prop, prop_object.__class__.__name__))
+            elif hasattr(prop_object, 'auto_now') and prop_object.auto_now:
+                # this is above create because it applies to both create and update
+                value = datetime.utcnow()
             elif create:
                 if hasattr(prop_object, 'default'):
                     value = prop_object.default
-            elif hasattr(prop_object, 'auto_now'):
-                value = datetime.utcnow()
+            else:
+                # default to any pre-existing value
+                value = entity.get(prop, None)
 
             data[prop] = value
 
@@ -76,6 +80,10 @@ class BaseModel(object):
         entity = datastore.Entity(db.key(cls.__name__, parent=parent))
         entity = cls.updateEntity(entity, create=True, **kwargs)
         return cls(entity)
+
+    @classmethod
+    def fetch(cls, query, limit=1000):
+        return [cls(result) for result in query.fetch(limit=limit)]
 
     @classmethod
     def get(cls, query):
@@ -187,7 +195,7 @@ class User(BaseModel):
 
     @property
     def auths(self):
-        return Auth.query(ancestor=self.key, order=['-last_login']).fetch()
+        return Auth.fetch(Auth.query(ancestor=self.key, order=['-last_login']))
 
     @classmethod
     def getByEmail(cls, email):
@@ -212,8 +220,8 @@ class User(BaseModel):
 
     def resetPassword(self):
         # python b64 always ends in '==' so we remove them because this is for use in a URL
-        self.token = base64.urlsafe_b64encode(os.urandom(16)).replace('=', '')
-        self.token_date = datetime.utcnow()
+        self.update(token=base64.urlsafe_b64encode(os.urandom(16)).decode().replace('=', ''),
+            token_date=datetime.utcnow())
         self.put()
         return self
 

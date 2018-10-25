@@ -10,7 +10,7 @@ gaescaffold.ajax = function(method, url, data, callback) {
             }
         }
     };
-    
+
     request.open(method, url, true);
     if (data != null) {
         request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
@@ -91,7 +91,9 @@ gaescaffold.MONTHS = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"];
 
 gaescaffold.convert_timestamp = function(el) {
-    var iso = el.getAttribute("datetime");
+    // Python 3 isoformat includes +, but that makes it invalid for JS, so remove it
+    var dt_string = el.getAttribute("datetime");
+    var iso = dt_string.split('+')[0] + "Z"; // the Z indicates UTC
     var local = new Date(iso);
     var month = gaescaffold.MONTHS[local.getMonth()];
     var date_string = month + " " + local.getDate().toString() + ", " + local.getFullYear().toString();

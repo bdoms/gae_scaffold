@@ -116,7 +116,6 @@ def int_comma(i):
 
 def cache(key, function):
     # simple in memory LRU cache, most recently used key is moved to the end, least is at front
-    print(key in CACHE)
     if key in CACHE:
         # move the key to the end since it was just used
         # (this method avoids a temporary state with the key not existing that might not be threadsafe)
@@ -140,5 +139,6 @@ def uncache(key):
 
 
 def clear_cache():
+    global CACHE, CACHE_KEYS
     CACHE = {}
     CACHE_KEYS = []

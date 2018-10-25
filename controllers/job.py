@@ -14,7 +14,7 @@ from sendgrid.helpers import mail as sgmail
 
 class AuthsController(BaseController):
 
-    MAX_DAYS = 14
+    MAX_DAYS = 30
 
     def check_xsrf_cookie(self):
         pass

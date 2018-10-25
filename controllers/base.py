@@ -168,14 +168,15 @@ class BaseController(web.RequestHandler):
             # secure cookies appear to always return bytes, and we need a string, so force it here
             slug = slug.decode()
             # uses a closure so we don't have to pass args
-            def _get_user(self):
+            def _get_user():
+                user = None
                 auth = model.Auth.getBySlug(slug, parent_class=model.User)
                 if auth:
                     user = auth.user
-                else:
-                    self.clear_cookie('auth_key')
                 return user
             user = helpers.cache(slug, _get_user)
+            if not user:
+                self.clear_cookie('auth_key')
         return user
 
     def deferEmail(self, to, subject, filename, reply_to=None, attachments=None, **kwargs):

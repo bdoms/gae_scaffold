@@ -1,13 +1,14 @@
 from datetime import datetime
 
-from config.constants import AUTH_EXPIRES_DAYS
-from controllers.base import BaseController, FormController, withoutUser
-import model
-
 #import cloudstorage as gcs
 from lib.gae_validators import validateRequiredString, validateRequiredEmail, validateBool
 import httpagentparser
 from tornado import web
+
+from config.constants import AUTH_EXPIRES_DAYS
+from controllers.base import BaseController, FormController, withoutUser
+import model
+import helpers
 
 IMAGE_TYPES = ["gif", "jpg", "jpeg", "png"]
 
@@ -47,7 +48,7 @@ class BaseLoginController(FormController):
 
         expires_days = remember and AUTH_EXPIRES_DAYS or None
         self.set_secure_cookie('auth_key', auth.slug, expires_days=expires_days, httponly=True,
-            secure=not self.debug)
+            secure=not helpers.debug())
 
         self.redirect("/home")
 
@@ -124,7 +125,7 @@ class AuthsController(FormController):
     def get(self):
 
         auths = self.current_user.auths
-        current_auth_key = self.get_secure_cookie('auth_key')
+        current_auth_key = self.get_secure_cookie('auth_key').decode()
 
         self.renderTemplate('user/auths.html', auths=auths, current_auth_key=current_auth_key)
 
@@ -133,10 +134,10 @@ class AuthsController(FormController):
 
         str_key = self.get_argument('auth_key')
         auth_key = model.Auth.slugToKey(str_key, parent_class=model.User)
-        if auth_key.parent() != self.current_user.key:
+        if auth_key.parent != self.current_user.key:
             return self.renderError(403)
         else:
-            db.delete(auth_key)
+            model.db.delete(auth_key)
             helpers.uncache(str_key)
             self.flash('success', 'Access revoked.')
 
@@ -196,9 +197,10 @@ class PasswordController(FormController):
 
         form_data, errors, valid_data = self.validate()
 
-        hashed_password = model.User.hashPassword(valid_data["password"], self.current_user.password_salt)
-        if hashed_password != self.current_user.hashed_password:
-            errors["match"] = True
+        if not errors:
+            hashed_password = model.User.hashPassword(valid_data["password"], self.current_user.password_salt)
+            if hashed_password != self.current_user.hashed_password:
+                errors["match"] = True
 
         if errors:
             del form_data["password"]
@@ -291,10 +293,10 @@ class LogoutController(BaseController):
 
     @web.authenticated
     def post(self):
-        str_key = self.get_secure_cookie('auth_key')
-        key = model.Auth.slugToKey(slug.decode(), parent_class=model.User)
-        db.delete(auth_key)
-        helpers.uncache(str_key)
+        slug = self.get_secure_cookie('auth_key').decode()
+        auth_key = model.Auth.slugToKey(slug, parent_class=model.User)
+        model.db.delete(auth_key)
+        helpers.uncache(slug)
 
         self.clear_all_cookies()
         self.redirect("/")
@@ -363,10 +365,8 @@ class ResetPasswordController(BaseLoginController):
         else:
             password_salt, hashed_password = model.User.changePassword(valid_data["password"])
             del valid_data["password"]
-            self.current_user.password_salt = password_salt
-            self.current_user.hashed_password = hashed_password
-            self.current_user.token = None
-            self.current_user.token_date = None
+            self.current_user.update(password_salt=password_salt, hashed_password=hashed_password,
+                token=None, token_date=None)
             self.current_user.put()
 
             # need to uncache so that changes to the user object get picked up by the cache

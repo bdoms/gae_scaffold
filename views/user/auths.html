@@ -29,17 +29,17 @@
         </td>
         <td>{{ auth.ip }}</td>
         <td>
-            <time datetime="{{ auth.last_login.isoformat() }}Z">
-                {{ auth.last_login.isoformat() }}Z
+            <time datetime="{{ auth.last_login.isoformat() }}">
+                {{ auth.last_login.isoformat() }}
             </time>
         </td>
         <td>
-            {% if auth.key.urlsafe() == current_auth_key %}
+            {% if auth.slug == current_auth_key %}
                 Current Session
             {% else %}
                 <form action="" method="post">
                     {% raw xsrf_form_html() %}
-                    <input type="hidden" name="auth_key" value="{{ auth.key.urlsafe() }}" />
+                    <input type="hidden" name="auth_key" value="{{ auth.slug }}" />
 
                     <input type="submit" value="Revoke Access" />
                 </form>
