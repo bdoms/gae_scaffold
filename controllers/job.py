@@ -1,7 +1,6 @@
 import base64
 from datetime import datetime, timedelta
 import json
-import logging
 import urllib.error
 
 from controllers.base import BaseController
@@ -26,7 +25,7 @@ class AuthsController(BaseController):
         auths = model.Auth.query(model.Auth.last_login < days_ago).fetch(keys_only=True)
         model.ndb.delete_multi(auths)
 
-        logging.info('Removed ' + str(len(auths)) + ' old auths.')
+        self.logger.info('Removed ' + str(len(auths)) + ' old auths.')
 
         self.render('OK')
 
@@ -84,9 +83,8 @@ class EmailController(BaseController):
             try:
                 self.SENDGRID.client.mail.send.post(request_body=message.get())
             except urllib.error.HTTPError:
-                logging.error(e.read())
+                self.logger.error(e.read())
         else:
-            # TODO: adapt this to just report to the console
             kwargs = {
                 'sender': SENDER_EMAIL,
                 'subject': subject,
@@ -107,6 +105,6 @@ class EmailController(BaseController):
             for to_email in to:
                 kwargs['to'] = to_email
 
-            logging.info(kwargs)
+            self.logger.info(kwargs)
 
         self.render('OK')

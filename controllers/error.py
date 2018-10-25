@@ -1,12 +1,11 @@
-import logging
-
-from controllers.base import BaseController
+from controllers.base import BaseController, cacheAndRender
 from config.constants import SUPPORT_EMAIL
 
 
 class ErrorController(BaseController):
     """ handles any page that falls through the rest of config.ROUTES """
 
+    @cacheAndRender()
     def get(self, *args):
 
         self.renderError(404)
@@ -27,7 +26,7 @@ class LogErrorController(BaseController):
             reason = self.request.get('reason', 'None')
             exception = StaticPageError(reason)
 
-        logging.error(exception.message)
+        self.logger.error(exception.message)
 
         self.renderJSON({})
 
@@ -46,7 +45,7 @@ class PolicyViolationController(BaseController):
     def post(self):
         exception = PolicyViolationError(self.request.body)
 
-        logging.error(exception.message)
+        self.logger.error(exception.message)
 
         self.renderJSON({})
 

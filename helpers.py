@@ -7,6 +7,10 @@ from lib.gae_deploy import static, script, style # NOQA: F401
 DEBUG = os.getenv('GAE_ENV', 'localdev').startswith('localdev') # "standard" on production (maybe "flexible" too?)
 TESTING = '(testbed)' in os.environ.get('SERVER_SOFTWARE', '')
 
+CACHE = {}
+CACHE_KEYS = []
+CACHE_MAX_SIZE = 128 # number of unique entries
+
 
 def debug():
     return DEBUG
@@ -108,3 +112,33 @@ def int_comma(i):
         groups.append(s[-3:])
         s = s[:-3]
     return s + ','.join(reversed(groups))
+
+
+def cache(key, function):
+    # simple in memory LRU cache, most recently used key is moved to the end, least is at front
+    print(key in CACHE)
+    if key in CACHE:
+        # move the key to the end since it was just used
+        # (this method avoids a temporary state with the key not existing that might not be threadsafe)
+        CACHE_KEYS.sort(key=key.__eq__)
+        return CACHE[key]
+
+    while len(CACHE_KEYS) >= CACHE_MAX_SIZE:
+        remove_key = CACHE_KEYS.pop(0)
+        del CACHE[remove_key]
+
+    value = function()
+    CACHE[key] = value
+    CACHE_KEYS.append(key)
+    return value
+
+
+def uncache(key):
+    if key in CACHE:
+        del CACHE[key]
+        CACHE_KEYS.remove(key)
+
+
+def clear_cache():
+    CACHE = {}
+    CACHE_KEYS = []

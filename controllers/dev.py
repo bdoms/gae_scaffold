@@ -1,11 +1,11 @@
-import logging
 import os
+
+from lib import gae_html
+from lib.gae_validators import validateEmail
 
 from controllers.base import FormController
 import helpers
 import model
-
-from lib.gae_validators import validateEmail
 
 SERVICE = os.getenv('GAE_SERVICE', '')
 VERSION = os.getenv('GAE_VERSION', '')
@@ -16,13 +16,22 @@ class DevController(FormController):
 
     FIELDS = {"email": validateEmail}
 
-    def get(self):
+    def before(self):
+        if (not self.current_user or not self.current_user.is_dev) and not helpers.debug():
+            return self.renderError(403)
 
-        self.renderTemplate('dev.html', service=SERVICE, version=VERSION, logout_url='')
+    def get(self):
+        self.renderTemplate('dev.html', service=SERVICE, version=VERSION)
 
     def post(self):
 
-        if self.get_argument('make_admin', None):
+        if self.get_argument('clear_cache', None):
+            helpers.clear_cache()
+            gae_html.clearCache()
+            self.logger.info('Cleared cache.')
+            self.flash("info", "User successfully made admin.")
+
+        elif self.get_argument('make_admin', None):
             form_data, errors, valid_data = self.validate()
             if not errors:
                 user = model.User.getByEmail(valid_data["email"])
@@ -31,7 +40,8 @@ class DevController(FormController):
                     user.put()
 
                     # the user may currently be signed in so invalidate its cache to get the new permissions
-                    self.uncache(user.slug)
+                    helpers.uncache(user.slug)
+                    self.logger.info('Made user admin: ' + valid_data['email'])
                     self.flash("success", "User successfully made admin.")
                 else:
                     errors["exists"] = True
@@ -39,7 +49,7 @@ class DevController(FormController):
                 return self.redisplay(form_data, errors)
 
         elif self.get_argument('migrate', None):
-            logging.info('Beginning migration.')
+            self.logger.info('Beginning migration.')
             modified = []
 
             # do migration work
@@ -50,10 +60,10 @@ class DevController(FormController):
             if modified:
                 model.db.put_multi(modified)
 
-            logging.info('Migration finished. Modified ' + str(len(modified)) + ' items.')
+            self.logger.info('Migration finished. Modified ' + str(len(modified)) + ' items.')
             self.flash('success', 'Migrations Complete')
 
-        elif self.get_argument('reset', None) and self.debug:
+        elif self.get_argument('reset', None) and helpers.debug():
             # delete all entities for all classes
             model_classes = [model.Auth, model.User]
             for model_class in model_classes:

@@ -16,13 +16,12 @@ import model
 from config.constants import VIEWS_PATH, AUTH_EXPIRES_DAYS, SUPPORT_EMAIL
 
 # lib imports
-# from lib.gae_html import cacheAndRender # NOQA: F401
+from lib.gae_html import cacheAndRender # NOQA: F401
+
+PROJECT = os.getenv('GOOGLE_CLOUD_PROJECT', 'test') # possibly 'APPLICATION_ID' ?
 
 
 class BaseController(web.RequestHandler):
-
-    def initialize(self):
-        self.debug = self.settings.get('debug', False)
 
     def prepare(self):
         # get a session store for this request
@@ -58,14 +57,16 @@ class BaseController(web.RequestHandler):
         # FUTURE: optimize slightly by only doing this if the session has been modified
         #         tried something simply like `if self.session != self.orig_session:` and the cookie was never set
         self.set_secure_cookie('session', json.dumps(self.session), expires_days=AUTH_EXPIRES_DAYS,
-            httponly=True, secure=not self.debug)
+            httponly=True, secure=not helpers.debug())
 
     @property
     def gcs_bucket(self):
        # this needs to change if not using the default bucket
-       #return app_identity.get_default_gcs_bucket_name()
-       # TODO
-       return 'test'
+       return PROJECT + '.appspot.com'
+
+    @property
+    def logger(self):
+       return logging.getLogger('tornado.application')
 
     def flash(self, level, message):
         self.session["flash"] = {"level": level, "message": message}
@@ -74,11 +75,10 @@ class BaseController(web.RequestHandler):
 
         # add some standard variables
         kwargs["is_admin"] = self.current_user and self.current_user.is_admin
-        kwargs["is_dev"] = False # TODO
+        kwargs["is_dev"] = self.current_user and self.current_user.is_dev
         kwargs["form"] = self.session.pop("form_data", {})
         kwargs["errors"] = self.session.pop("errors", {})
         kwargs["h"] = helpers
-        kwargs["debug"] = self.debug
         kwargs["page_title"] = kwargs.get("page_title", "")
 
         # flashes are a dict with two properties: {"level": "info|success|error", "message": "str"}
@@ -150,7 +150,7 @@ class BaseController(web.RequestHandler):
         # if this is development, then include a stack trace
         stacktrace = None
         message = None
-        if exc_info and (self.debug or (self.current_user and self.current_user.is_admin)):
+        if exc_info and (helpers.debug() or (self.current_user and self.current_user.is_admin)):
             import traceback
             stacktrace = ''.join(traceback.format_exception(*exc_info))
             message = exc_info[0].__name__
@@ -161,29 +161,21 @@ class BaseController(web.RequestHandler):
         self.deferEmail([SUPPORT_EMAIL], "Error Alert", "error_alert.html", message=message,
             user=self.current_user, url=self.request.full_url(), method=self.request.method)
 
-    def cache(self, key, function, expires=86400):
-        # value = memcache.get(key)
-        # if value is None:
-        #     value = function()
-        #     memcache.add(key, value, expires)
-        # return value
-        return function() # TODO: effectively a no-op until we figure out a caching solution
-
-    def uncache(self, key, seconds=10):
-        # memcache.delete(key, seconds=seconds)
-        pass
-
     def get_current_user(self):
         user = None
         slug = self.get_secure_cookie('auth_key')
         if slug:
             # secure cookies appear to always return bytes, and we need a string, so force it here
-            auth = model.Auth.getBySlug(slug.decode(), parent_class=model.User)
-            if auth:
-                user = auth.user
-            else:
-                self.clear_cookie('auth_key')
-
+            slug = slug.decode()
+            # uses a closure so we don't have to pass args
+            def _get_user(self):
+                auth = model.Auth.getBySlug(slug, parent_class=model.User)
+                if auth:
+                    user = auth.user
+                else:
+                    self.clear_cookie('auth_key')
+                return user
+            user = helpers.cache(slug, _get_user)
         return user
 
     def deferEmail(self, to, subject, filename, reply_to=None, attachments=None, **kwargs):

@@ -10,7 +10,6 @@ from config.constants import PASSWORD_PEPPER, DATASTORE_EMULATOR_HOST
 import helpers
 
 if helpers.debug():
-    # TODO: this should be within a check for the dev env
     # have to mock the call because dev_appserver doesn't properly set up the app engine environment (yet)
     # note that using mock.patch doesn't seem to work here (don't know why)
     import mock
@@ -45,33 +44,15 @@ class BaseModel(object):
 
     def put(self):
         db.put(self.entity)
+        self.key = self.entity.key
 
     def update(self, **kwargs):
-        data = {}
-        for prop in self.__class__.properties():
-            prop_object = getattr(self.__class__, prop)
-            if prop in kwargs:
-                value = kwargs[prop]
-                if prop_object.validate(value):
-                    data[prop] = value
-                else:
-                    raise ValueError('"{}" is not a valid "{}"'.format(prop, prop_object.__class__.__name__))
-            elif hasattr(prop_object, 'auto_now'):
-                data[prop] = datetime.utcnow()
-
-        self.entity.update(data)
+        self.entity = self.__class__.updateEntity(entity, **kwargs)
         self._updateProps()
 
     @classmethod
-    def create(cls, parent=None, **kwargs):
-        entity = datastore.Entity(db.key(cls.__name__, parent=parent))
-        # TODO
-        # entity.update({
-        #     'category': 'Personal',
-        #     'done': False,
-        #     'priority': 4,
-        #     'description': 'Learn Cloud Datastore'
-        # })
+    def updateEntity(cls, entity, create=False, **kwargs):
+        data = {}
         for prop in cls.properties():
             value = None
             prop_object = getattr(cls, prop)
@@ -79,16 +60,44 @@ class BaseModel(object):
                 value = kwargs[prop]
                 if not prop_object.validate(value):
                     raise ValueError('"{}" is not a valid "{}"'.format(prop, prop_object.__class__.__name__))
+            elif create:
+                if hasattr(prop_object, 'default'):
+                    value = prop_object.default
+            elif hasattr(prop_object, 'auto_now'):
+                value = datetime.utcnow()
 
-            if value is None and hasattr(prop_object, 'default'):
-                # TODO: for an update routine, make sure that the default isn't already set on this entity
-                #       also need to support auto_now in an update
-                value = prop_object.default
+            data[prop] = value
 
-            kwargs[prop] = value
+        entity.update(data)
+        return entity
 
-        entity.update(kwargs)
+    @classmethod
+    def create(cls, parent=None, **kwargs):
+        entity = datastore.Entity(db.key(cls.__name__, parent=parent))
+        entity = cls.updateEntity(entity, create=True, **kwargs)
         return cls(entity)
+
+    @classmethod
+    def get(cls, query):
+        # acts like the old .get where it returns the first entity or None
+        results = list(query.fetch(limit=1))
+        return results and cls(results[0]) or None
+
+    @classmethod
+    def slugToKey(cls, slug, parent_class=None):
+        # assumes max 2 levels deep for now
+        if parent_class:
+            ids = slug.split('.')
+            path = [parent_class.__name__, int(ids[0]), cls.__name__, int(ids[1])]
+        else:
+            path = [cls.__name__, int(slug)]
+        return db.key(*path)
+
+    @classmethod
+    def getBySlug(cls, slug, parent_class=None):
+        key = cls.slugToKey(slug, parent_class=parent_class)
+        entity = db.get(key)
+        return entity and cls(entity) or None
 
     @classmethod
     def properties(cls):
@@ -98,24 +107,6 @@ class BaseModel(object):
     @classmethod
     def query(cls, *args, **kwargs):
         return db.query(kind=cls.__name__, *args, **kwargs)
-
-    @classmethod
-    def get(cls, query):
-        # acts like the old .get where it returns the first entity or None
-        results = list(query.fetch(limit=1))
-        return results and cls(results[0]) or None
-
-    @classmethod
-    def getBySlug(cls, slug, parent_class=None):
-        # assumes max 2 levels deep for now
-        if parent_class:
-            ids = slug.split('.')
-            path = [parent_class.__name__, int(ids[0]), cls.__name__, int(ids[1])]
-        else:
-            path = [cls.__name__, int(slug)]
-        key = db.key(*path)
-        entity = db.get(key)
-        return entity and cls(entity) or None
 
 
 class BaseProperty(object):
@@ -187,6 +178,7 @@ class User(BaseModel):
     #pic_blob = BlobKeyProperty()
     pic_url = StringProperty()
     is_admin = BooleanProperty(default=False)
+    is_dev = BooleanProperty(default=False) # set this directly via the datastore console
     created_date = DateTimeProperty(auto_now_add=True)
 
     @property

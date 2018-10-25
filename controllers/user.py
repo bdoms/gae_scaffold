@@ -4,7 +4,7 @@ from config.constants import AUTH_EXPIRES_DAYS
 from controllers.base import BaseController, FormController, withoutUser
 import model
 
-#import cloudstorage as gcs # TODO probably need to add this in requirements
+#import cloudstorage as gcs
 from lib.gae_validators import validateRequiredString, validateRequiredEmail, validateBool
 import httpagentparser
 from tornado import web
@@ -44,9 +44,6 @@ class BaseLoginController(FormController):
                 device = parsed['dist']['name']
             auth = model.Auth.create(user_agent=ua, os=os, browser=browser, device=device, ip=ip, parent=user.key)
             auth.put()
-
-        # TODO: auth.slug is causing an error here the first time it's called after creating a new auth
-        #       looks like db doesn't have an id for the auth yet (force allocating it? or wait for it to return?)
 
         expires_days = remember and AUTH_EXPIRES_DAYS or None
         self.set_secure_cookie('auth_key', auth.slug, expires_days=expires_days, httponly=True,
@@ -117,7 +114,7 @@ class IndexController(FormController):
                 return self.redisplay({}, errors)
 
         self.current_user.put()
-        self.uncache(self.current_user.slug)
+        helpers.uncache(self.current_user.slug)
         self.redisplay()
 
 
@@ -135,20 +132,13 @@ class AuthsController(FormController):
     def post(self):
 
         str_key = self.get_argument('auth_key')
-
-        try:
-            auth_key = model.ndb.Key(urlsafe=str_key)
-        except Exception:
-            # this is really a ProtocolBufferDecodeError, but we can't catch that
-            # see https://github.com/googlecloudplatform/datastore-ndb-python/issues/143
-            self.flash('error', 'Invalid session.')
+        auth_key = model.Auth.slugToKey(str_key, parent_class=model.User)
+        if auth_key.parent() != self.current_user.key:
+            return self.renderError(403)
         else:
-            if auth_key.parent() != self.current_user.key:
-                return self.renderError(403)
-            else:
-                self.uncache(str_key)
-                auth_key.delete()
-                self.flash('success', 'Access revoked.')
+            db.delete(auth_key)
+            helpers.uncache(str_key)
+            self.flash('success', 'Access revoked.')
 
         self.redisplay()
 
@@ -186,7 +176,7 @@ class EmailController(FormController):
         else:
             self.current_user.update(email=email)
             self.current_user.put()
-            self.uncache(self.current_user.slug)
+            helpers.uncache(self.current_user.slug)
 
             self.flash("success", "Email changed successfully.")
             self.redirect("/user")
@@ -219,7 +209,7 @@ class PasswordController(FormController):
 
             self.current_user.update(password_salt=password_salt, hashed_password=hashed_password)
             self.current_user.put()
-            self.uncache(self.current_user.slug)
+            helpers.uncache(self.current_user.slug)
 
             self.flash("success", "Password changed successfully.")
             self.redirect("/user")
@@ -302,13 +292,10 @@ class LogoutController(BaseController):
     @web.authenticated
     def post(self):
         str_key = self.get_secure_cookie('auth_key')
-        try:
-            auth_key = model.ndb.Key(urlsafe=str_key)
-        except Exception:
-            pass
-        else:
-            # self.uncache(str_key)
-            db.delete(auth_key)
+        key = model.Auth.slugToKey(slug.decode(), parent_class=model.User)
+        db.delete(auth_key)
+        helpers.uncache(str_key)
+
         self.clear_all_cookies()
         self.redirect("/")
 
@@ -382,7 +369,7 @@ class ResetPasswordController(BaseLoginController):
             self.current_user.token_date = None
             self.current_user.put()
 
-            # need to uncache so that changes to the user object get picked up by memcache
-            self.uncache(self.current_user.slug)
+            # need to uncache so that changes to the user object get picked up by the cache
+            helpers.uncache(self.current_user.slug)
             self.flash("success", "Your password has been changed. You have been logged in with your new password.")
             self.login(self.current_user)
