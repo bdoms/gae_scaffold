@@ -14,7 +14,7 @@ VERSION = os.getenv('GAE_VERSION', '')
 class DevController(FormController):
     """ handles request for the dev page """
 
-    FIELDS = {"email": validateEmail}
+    FIELDS = {'email': validateEmail}
 
     def before(self):
         if (not self.current_user or not self.current_user.is_dev) and not helpers.debug():
@@ -29,7 +29,7 @@ class DevController(FormController):
             helpers.clear_cache()
             gae_html.clearCache()
             self.logger.info('Cleared cache.')
-            self.flash("info", "Cache Cleared")
+            self.flash('info', 'Cache Cleared')
 
         elif self.get_argument('make_admin', None):
             form_data, errors, valid_data = self.validate()
@@ -42,9 +42,9 @@ class DevController(FormController):
                     # the user may currently be signed in so invalidate its cache to get the new permissions
                     helpers.uncache(user.slug)
                     self.logger.info('Made user admin: ' + valid_data['email'])
-                    self.flash("success", "User successfully made admin.")
+                    self.flash('success', 'User successfully made admin.')
                 else:
-                    errors["exists"] = True
+                    errors['exists'] = True
             if errors:
                 return self.redisplay(form_data, errors)
 
@@ -52,11 +52,12 @@ class DevController(FormController):
             self.logger.info('Beginning migration.')
             modified = []
 
-            # do migration work
+            # change and uncomment to do migration work
             # q = model.User.query()
-            # for entity in q.fetch():
-            #     entity = model.User.updateEntity(entity, {'prop': 'value'})
-            #     modified.append(entity)
+            # for user in q.fetch():
+            #     entity = user.entity
+            #     entity['prop'] = 'value'
+            #     modified.append(user.entity)
 
             if modified:
                 model.db.put_multi(modified)
@@ -69,10 +70,9 @@ class DevController(FormController):
             model_classes = [model.Auth, model.User]
             for model_class in model_classes:
                 q = model_class.query()
-                q.keys_only()
-                entities = list(q.fetch())
+                entities = list(q.fetch(keys_only=True))
                 if len(entities) > 0:
-                    # note that keys_only still returns the whole entity
+                    # note that keys_only still returns the whole entity object
                     model.db.delete_multi([entity.key for entity in entities])
 
             # add any fixtures needed for development here

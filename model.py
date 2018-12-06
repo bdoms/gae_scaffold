@@ -31,31 +31,44 @@ db = datastore.Client() # credentials=creds, #project='test')
 # db = datastore.Client(os.getenv('GOOGLE_CLOUD_PROJECT', ''))
 
 
+class Query(datastore.query.Query):
+
+    def __init__(self, model_class, *args, **kwargs):
+        super().__init__(db, kind=model_class.__name__, *args, **kwargs)
+        self.model_class = model_class
+
+    def __iter__(self):
+        return (self.model_class(result) for result in super().fetch())
+
+    def fetch(self, keys_only=False, *args, **kwargs):
+        if keys_only:
+            super().keys_only()
+
+        for result in super().fetch(*args, **kwargs):
+            yield self.model_class(result)
+
+    def get(self):
+        # acts like the old .get where it returns the first entity or None
+        results = list(super().fetch(limit=1))
+        return results and self.model_class(results[0]) or None
+
+
 class BaseModel(object):
 
-    def __init__(self, entity):
+    def __init__(self, entity, create=False, **kwargs):
         self.entity = entity
-        self._updateProps()
         self.key = entity.key
 
-    def _updateProps(self):
-        for prop in self.__class__.properties():
-            setattr(self, prop, self.entity.get(prop, None))
+        if create:
+            self._updateEntity(create=create, **kwargs)
 
-    def put(self):
-        db.put(self.entity)
-        self.key = self.entity.key
-
-    def update(self, **kwargs):
-        self.entity = self.__class__.updateEntity(self.entity, **kwargs)
         self._updateProps()
 
-    @classmethod
-    def updateEntity(cls, entity, create=False, **kwargs):
+    def _updateEntity(self, create=False, **kwargs):
         data = {}
-        for prop in cls.properties():
+        for prop in self.__class__.properties():
             value = None
-            prop_object = getattr(cls, prop)
+            prop_object = getattr(self.__class__, prop)
             if prop in kwargs:
                 value = kwargs[prop]
                 if not prop_object.validate(value):
@@ -68,28 +81,28 @@ class BaseModel(object):
                     value = prop_object.default
             else:
                 # default to any pre-existing value
-                value = entity.get(prop, None)
+                value = self.entity.get(prop, None)
 
             data[prop] = value
 
-        entity.update(data)
-        return entity
+        self.entity.update(data)
+
+    def _updateProps(self):
+        for prop in self.__class__.properties():
+            setattr(self, prop, self.entity.get(prop, None))
+
+    def put(self):
+        db.put(self.entity)
+        self.key = self.entity.key
+
+    def update(self, **kwargs):
+        self._updateEntity(**kwargs)
+        self._updateProps()
 
     @classmethod
     def create(cls, parent=None, **kwargs):
         entity = datastore.Entity(db.key(cls.__name__, parent=parent))
-        entity = cls.updateEntity(entity, create=True, **kwargs)
-        return cls(entity)
-
-    @classmethod
-    def fetch(cls, query, limit=1000):
-        return [cls(result) for result in query.fetch(limit=limit)]
-
-    @classmethod
-    def get(cls, query):
-        # acts like the old .get where it returns the first entity or None
-        results = list(query.fetch(limit=1))
-        return results and cls(results[0]) or None
+        return cls(entity, create=True, **kwargs)
 
     @classmethod
     def slugToKey(cls, slug, parent_class=None):
@@ -114,13 +127,13 @@ class BaseModel(object):
 
     @classmethod
     def query(cls, *args, **kwargs):
-        return db.query(kind=cls.__name__, *args, **kwargs)
+        return Query(cls, *args, **kwargs)
 
 
 class BaseProperty(object):
 
     def validate(self, value):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class BooleanProperty(BaseProperty):
@@ -195,13 +208,13 @@ class User(BaseModel):
 
     @property
     def auths(self):
-        return Auth.fetch(Auth.query(ancestor=self.key, order=['-last_login']))
+        return Auth.query(ancestor=self.key, order=['-last_login'])
 
     @classmethod
     def getByEmail(cls, email):
         q = cls.query()
         q.add_filter('email', '=', email)
-        return cls.get(q)
+        return q.get()
 
     @classmethod
     def hashPassword(cls, password, salt):
@@ -216,7 +229,7 @@ class User(BaseModel):
     def getAuth(self, user_agent):
         q = Auth.query(ancestor=self.key)
         q.add_filter('user_agent', '=', user_agent)
-        return Auth.get(q)
+        return q.get()
 
     def resetPassword(self):
         # python b64 always ends in '==' so we remove them because this is for use in a URL

@@ -22,7 +22,7 @@ class BaseLoginController(FormController):
         # reject a login attempt without a user agent or IP address
         if not ua or not ip:
             self.flash('error', 'Invalid client.')
-            return self.redirect("/user/login")
+            return self.redirect('/user/login')
 
         auth = None
         if not new:

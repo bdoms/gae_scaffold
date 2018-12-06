@@ -23,7 +23,7 @@ class AuthsController(BaseController):
 
         days_ago = datetime.utcnow() - timedelta(self.MAX_DAYS)
         auths = model.Auth.query(model.Auth.last_login < days_ago).fetch(keys_only=True)
-        model.ndb.delete_multi(auths)
+        model.db.delete_multi([auth.key for auth in auths])
 
         self.logger.info('Removed ' + str(len(auths)) + ' old auths.')
 
