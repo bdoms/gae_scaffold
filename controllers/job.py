@@ -22,12 +22,14 @@ class AuthsController(BaseController):
     def get(self):
 
         days_ago = datetime.utcnow() - timedelta(self.MAX_DAYS)
-        auths = model.Auth.query(model.Auth.last_login < days_ago).fetch(keys_only=True)
-        model.db.delete_multi([auth.key for auth in auths])
+        q = model.Auth.query()
+        q.add_filter('last_login', '<', days_ago)
+        auths = [auth.key for auth in q.fetch(keys_only=True)]
+        model.db.delete_multi(auths)
 
         self.logger.info('Removed ' + str(len(auths)) + ' old auths.')
 
-        self.render('OK')
+        self.write('OK')
 
 
 class EmailController(BaseController):
@@ -107,4 +109,4 @@ class EmailController(BaseController):
 
             self.logger.info(kwargs)
 
-        self.render('OK')
+        self.write('OK')

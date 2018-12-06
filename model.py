@@ -38,7 +38,8 @@ class Query(datastore.query.Query):
         self.model_class = model_class
 
     def __iter__(self):
-        return (self.model_class(result) for result in super().fetch())
+        for result in super().fetch():
+            yield self.model_class(result)
 
     def fetch(self, keys_only=False, *args, **kwargs):
         if keys_only:
