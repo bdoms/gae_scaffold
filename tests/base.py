@@ -1,11 +1,8 @@
 import base64
-import os
 import unittest
+import urllib.request
 
-from google.appengine.ext import testbed
-from google.appengine.datastore import datastore_stub_util
-
-from config.constants import APP_PATH
+from config.constants import DATASTORE_EMULATOR_HOST
 
 UCHAR = u"\u03B4" # lowercase delta
 
@@ -13,30 +10,17 @@ UCHAR = u"\u03B4" # lowercase delta
 class BaseTestCase(unittest.TestCase):
 
     def setUp(self):
-        # First, create an instance of the Testbed class.
-        self.testbed = testbed.Testbed()
-        # Then activate the testbed, which prepares the service stubs for use.
-        self.testbed.activate()
-        # Create a consistency policy that will simulate the High Replication consistency model.
-        self.policy = datastore_stub_util.PseudoRandomHRConsistencyPolicy(probability=0)
-        # Next, declare which service stubs you want to use.
-        self.testbed.init_app_identity_stub()
-        self.testbed.init_blobstore_stub()
-        self.testbed.init_datastore_v3_stub()
-        self.testbed.init_images_stub()
-        self.testbed.init_memcache_stub()
-        self.testbed.init_user_stub()
-        # need to include the path where queue.yaml exists so that the stub knows about named queues
-        self.testbed.init_taskqueue_stub(root_path=APP_PATH)
-        self.task_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
-        self.testbed.init_mail_stub()
-        self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)
+        # TODO: stub for testing mail
+
+        # need to post to the emulator to reset old data
+        # https://stackoverflow.com/questions/46956758/google-datastore-emulator-remove-data-from-local-database'
+        urllib.request.urlopen('http://' + DATASTORE_EMULATOR_HOST + '/reset', {})
 
         import model
         self.model = model
 
-    def tearDown(self):
-        self.testbed.deactivate()
+        import helpers
+        helpers.clear_cache()
 
     def executeDeferred(self, name="default"):
         # see http://stackoverflow.com/questions/6632809/gae-unit-testing-taskqueue-with-testbed
@@ -60,11 +44,11 @@ class BaseTestCase(unittest.TestCase):
         email = email or "test" + UCHAR + "@example.com"
         password = "Test password" + UCHAR
 
-        password_salt = os.urandom(64).encode("base64")
-        hashed_password = self.model.User.hashPassword(password, password_salt)
-        other_user = self.model.User.query(self.model.User.email == email).get()
+        other_user = self.model.User.getByEmail(email)
         assert not other_user, "That email address is already in use."
-        user = self.model.User(first_name=first_name, last_name=last_name, email=email,
+
+        password_salt, hashed_password = self.model.User.changePassword(password)
+        user = self.model.User.create(first_name=first_name, last_name=last_name, email=email,
             password_salt=password_salt, hashed_password=hashed_password, is_admin=is_admin, **kwargs)
         user.put()
         user.password = password # for convenience with signing in during testing
@@ -76,7 +60,7 @@ class BaseTestCase(unittest.TestCase):
         return user
 
     def createAuth(self, user):
-        auth = self.model.Auth(user_agent='test user agent' + UCHAR, os='test os' + UCHAR,
+        auth = self.model.Auth.create(user_agent='test user agent' + UCHAR, os='test os' + UCHAR,
             browser='test browser' + UCHAR, device='test device' + UCHAR, ip='127.0.0.1', parent=user.key)
         auth.put()
         return auth

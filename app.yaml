@@ -41,6 +41,7 @@ error_handlers:
 skip_files:
 - ^(.*/)?.*\.py[co]$
 - ^(.*/)?\..*$
+- ^(.*/)?__pycache__/.*$
 - ^(.*/)?deploy.yaml$
 - ^config/.*\.template\..*$
 - ^tests/.*$

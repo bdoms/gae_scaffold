@@ -1,5 +1,5 @@
 service: default
-runtime: python27
+runtime: python37
 
 includes:
 - config/vars.yaml
@@ -44,6 +44,7 @@ error_handlers:
 skip_files:
 - ^(.*/)?.*\.py[co]$
 - ^(.*/)?\..*$
+- ^(.*/)?__pycache__/.*$
 - ^(.*/)?deploy.yaml$
 - ^config/.*\.template\..*$
 - ^tests/.*$

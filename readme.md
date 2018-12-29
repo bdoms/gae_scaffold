@@ -51,10 +51,15 @@ git reset $(git commit-tree HEAD^{tree} -m "Initial commit.")
 
 ### Testing Dependencies
 
+Tests must be inside a virtual environment in order to run.
+Instructions for how to do that are in the "Run Without dev_appserver.py" section below.
+Additionally, you must install a few more dependencies.
 These are required to run tests, but are not needed to run the server and aren't included during deployment.
 
+To add them, inside the same virtual environment, run:
+
 ```bash
-pip install -r testing_requirements.txt -t lib/testing
+pip install -r testing_requirements.txt
 ```
 
 

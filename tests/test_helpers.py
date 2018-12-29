@@ -130,3 +130,41 @@ class TestHelpers(BaseTestCase):
 
         result = self.helpers.int_comma(1000000)
         assert result == "1,000,000"
+
+    def test_cache(self):
+        self.executed = 0
+
+        def testFunction():
+            self.executed += 1
+            return "test value"
+
+        assert self.executed == 0
+
+        result = self.helpers.cache("test key", testFunction)
+        assert result == "test value"
+        assert self.executed == 1
+
+        # the value should now be cached, so the function should not be executed again
+        result = self.helpers.cache("test key", testFunction)
+        assert result == "test value"
+        assert self.executed == 1
+
+    def test_uncache(self):
+        self.executed = 0
+
+        def testFunction():
+            self.executed += 1
+            return True
+
+        assert self.executed == 0
+
+        result = self.helpers.cache("test key", testFunction)
+        assert result is True
+        assert self.executed == 1
+
+        self.helpers.uncache("test key")
+
+        # the value should not be cached, so the function should execute again
+        result = self.helpers.cache("test key", testFunction)
+        assert result is True
+        assert self.executed == 2

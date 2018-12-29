@@ -14,16 +14,16 @@ class ErrorController(BaseController):
 class LogErrorController(BaseController):
     """ called via AJAX to log when static error pages get displayed """
 
-    # called from a static page so it won't know CSRF
+    # called from a static page so it won't know XSRF
     def check_xsrf_cookie(self):
         pass
 
     def post(self):
-        reason = self.request.get('javascript', '')
+        reason = self.get_argument('javascript', '')
         if reason:
             exception = JavascriptError(reason)
         else:
-            reason = self.request.get('reason', 'None')
+            reason = self.get_argument('reason', 'None')
             exception = StaticPageError(reason)
 
         self.logger.error(exception.message)
@@ -31,27 +31,27 @@ class LogErrorController(BaseController):
         self.renderJSON({})
 
         # send an email notifying us of this error
-        self.deferEmail([SUPPORT_EMAIL], "Error Alert", "error_alert.html",
-            exception=exception, user=self.user, url=self.request.referer)
+        self.deferEmail([SUPPORT_EMAIL], "Error Alert", "error_alert.html", method='',
+            message=exception.message, user=self.current_user, url=self.request.headers.get('referer'))
 
 
 class PolicyViolationController(BaseController):
     """ called by the browser to report when a resource violates the CSP """
 
-    # called by the browser so it won't know CSRF
+    # called by the browser so it won't know XSRF
     def check_xsrf_cookie(self):
         pass
 
     def post(self):
-        exception = PolicyViolationError(self.request.body)
+        exception = PolicyViolationError(self.request.body.decode('utf8'))
 
         self.logger.error(exception.message)
 
         self.renderJSON({})
 
         # send an email notifying us of this error
-        self.deferEmail([SUPPORT_EMAIL], "Error Alert", "error_alert.html",
-            exception=exception, user=self.user, url=self.request.referer)
+        self.deferEmail([SUPPORT_EMAIL], "Error Alert", "error_alert.html", method='',
+            message=exception.message, user=self.current_user, url=self.request.headers.get('referer'))
 
 
 class JavascriptError(Exception):

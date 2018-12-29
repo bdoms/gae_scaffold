@@ -13,7 +13,7 @@ from tornado import web
 # local imports
 import helpers
 import model
-from config.constants import VIEWS_PATH, AUTH_EXPIRES_DAYS, SUPPORT_EMAIL
+from config.constants import AUTH_EXPIRES_DAYS, SUPPORT_EMAIL
 
 # lib imports
 from lib.gae_html import cacheAndRender # NOQA: F401
@@ -32,8 +32,10 @@ class BaseController(web.RequestHandler):
             self.session = {}
 
         if hasattr(self, "before"):
+            # NOTE that self.path_args and self.path_kwargs are set as part of execute, so they aren't available here
+            #      shouldn't be too much of a problem because any before method can inspect the entire request
             try:
-                self.before(*self.path_args, **self.path_kwargs)
+                self.before()
             except Exception as e:
                 raise
 
@@ -42,15 +44,11 @@ class BaseController(web.RequestHandler):
         if status_int < 200 or status_int > 299:
             raise web.Finish
 
-    def on_finish(self):
-        # NOTE that cookies set here (or in the after method) aren't returned in the response, so they won't be set
-        # this should be used for server-side cleanup only - assume that the response cannot be modified at this point
-        # sadly attempts to do so won't throw any errors, but the browser won't see it (silent failure)
-        if hasattr(self, "after"):
-            try:
-                self.after(*self.request.path_args, **self.request.path_kwargs)
-            except Exception as e:
-                raise
+    # override to do cleanup
+    # def on_finish(self):
+    # NOTE that cookies set here aren't returned in the response, so they won't be set
+    # this should be used for server-side cleanup only - assume that the response cannot be modified at this point
+    # sadly attempts to do so won't throw any errors, and the browser won't see the changes (silent failure)
 
     def saveSession(self):
         # this needs to be called anywhere we're finishing the response (rendering, redirecting, etc.)
@@ -61,12 +59,12 @@ class BaseController(web.RequestHandler):
 
     @property
     def gcs_bucket(self):
-       # this needs to change if not using the default bucket
-       return PROJECT + '.appspot.com'
+        # this needs to change if not using the default bucket
+        return PROJECT + '.appspot.com'
 
     @property
     def logger(self):
-       return logging.getLogger('tornado.application')
+        return logging.getLogger('tornado.application')
 
     def flash(self, level, message):
         self.session["flash"] = {"level": level, "message": message}
@@ -90,7 +88,7 @@ class BaseController(web.RequestHandler):
         # uncomment to enable HSTS - note that it can have permanent consequences for your domain
         # this header is removed from non appspot domains - a custom domain must be whitelisted first
         # see https://code.google.com/p/googleappengine/issues/detail?id=7427
-        # self.response.headers['Strict-Transport-Security'] = 'max-age=86400; includeSubDomains'
+        # self.set_header('Strict-Transport-Security', 'max-age=86400; includeSubDomains')
 
         # this is purposefully strict by default
         # you can change site-wide or add logic for different environments or actions as needed
@@ -115,7 +113,6 @@ class BaseController(web.RequestHandler):
     def renderJSON(self, data):
         self.set_header('Content-Type', 'application/json')
         if self.request.method != 'HEAD':
-            #self.write(json.dumps(data, ensure_ascii=False, encoding='utf-8'))
             self.write(data)
             self.saveSession()
 
@@ -161,12 +158,14 @@ class BaseController(web.RequestHandler):
         self.deferEmail([SUPPORT_EMAIL], "Error Alert", "error_alert.html", message=message,
             user=self.current_user, url=self.request.full_url(), method=self.request.method)
 
+    # this is called automatically to set the current_user property
     def get_current_user(self):
         user = None
         slug = self.get_secure_cookie('auth_key')
         if slug:
             # secure cookies appear to always return bytes, and we need a string, so force it here
             slug = slug.decode()
+
             # uses a closure so we don't have to pass args
             def _get_user():
                 user = None
@@ -174,6 +173,7 @@ class BaseController(web.RequestHandler):
                 if auth:
                     user = auth.user
                 return user
+
             user = helpers.cache(slug, _get_user)
             if not user:
                 self.clear_cookie('auth_key')
@@ -197,11 +197,11 @@ class BaseController(web.RequestHandler):
         if attachments:
             # attachments might contain binary data, which must be encoded to transport in the queue
             for attachment in attachments:
-                attachment['content'] = base64.b64encode(attachment['content'])
+                attachment['content'] = base64.b64encode(attachment['content']).decode() # JSON needs strings
             params['attachments'] = json.dumps(attachments)
 
         # TODO: solution for this?
-        #taskqueue.add(url='/job/email', params=params, queue_name='mail')
+        # taskqueue.add(url='/job/email', params=params, queue_name='mail')
 
 
 class FormController(BaseController):
@@ -215,10 +215,9 @@ class FormController(BaseController):
         valid_data = {} # only valid fields
 
         for name, validator in self.FIELDS.items():
-            try:
-                form_data[name] = self.get_argument(name, default='')
-            except UnicodeDecodeError:
-                return self.renderError(400)
+            # NOTE that checking for the unicode decode error happens inside get_argument
+
+            form_data[name] = self.get_argument(name, default='', strip=False)
 
             valid, data = validator(form_data[name])
             if valid:
@@ -253,7 +252,7 @@ def validateReferer(action):
     def decorate(*args, **kwargs):
         controller = args[0]
         referer = controller.request.headers.get("referer")
-        if not referer.startswith("http://" + controller.request.headers.get("host")):
+        if not referer or not referer.startswith("http://" + controller.request.headers.get("host")):
             return controller.renderError(400)
         return action(*args, **kwargs)
     return decorate

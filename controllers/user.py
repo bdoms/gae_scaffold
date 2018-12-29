@@ -1,6 +1,6 @@
 from datetime import datetime
 
-#import cloudstorage as gcs
+# import cloudstorage as gcs
 from lib.gae_validators import validateRequiredString, validateRequiredEmail, validateBool
 import httpagentparser
 from tornado import web
@@ -58,9 +58,6 @@ class IndexController(FormController):
     # TODO: need a serving URL for non-image files and this should work in prod
     # self.current_user.pic_url = 'https://' + self.gcs_bucket + '.storage.googleapis.com/' + rel_path
 
-    # this is sometimes called by the blob service, so it won't include the CSRF
-    SKIP_CSRF = True
-
     @web.authenticated
     def get(self):
 
@@ -70,46 +67,40 @@ class IndexController(FormController):
     def post(self):
 
         # TODO: this needs to be adapted to not use the blob store at all
-        if self.get_argument('delete'):
-            # this is called directly so we can manually check the CSRF here
-            if not self.checkCSRF():
-                return self.renderError(412)
-
+        if self.get_argument('delete', None):
             if self.current_user.pic_gcs:
                 path = self.current_user.pic_gcs
                 if path.startswith('/gs/'):
                     path = path[3:]
-                gcs.delete(path)
-            if self.current_user.pic_url:
-                images.delete_serving_url(self.current_user.pic_blob)
-            if self.current_user.pic_blob:
-                blobstore.delete(self.current_user.pic_blob)
+                # gcs.delete(path)
+            # if self.current_user.pic_url:
+                # images.delete_serving_url(self.current_user.pic_blob)
 
             self.current_user.pic_gcs = None
-            self.current_user.pic_blob = None
             self.current_user.pic_url = None
         else:
             errors = {}
-            uploads = self.get_uploads()
-            for upload in uploads:
-                # enforce file type based on extension
-                name, ext = upload.filename.rsplit(".", 1)
-                ext = ext.lower()
-                if ext not in IMAGE_TYPES:
-                    upload.delete()
-                    errors = {'type': True}
-                    continue
-
-                try:
-                    # note that this serving URL supports size and crop query params
-                    self.current_user.pic_url = images.get_serving_url(upload, secure_url=True)
-                except images.TransformationError:
-                    upload.delete()
-                    errors = {'corrupt': True}
-                    continue
-
-                self.current_user.pic_gcs = upload.gs_object_name
-                self.current_user.pic_blob = upload.key()
+            # TODO: fix this
+            # uploads = self.get_uploads()
+            # for upload in uploads:
+            #     # enforce file type based on extension
+            #     name, ext = upload.filename.rsplit(".", 1)
+            #     ext = ext.lower()
+            #     if ext not in IMAGE_TYPES:
+            #         upload.delete()
+            #         errors = {'type': True}
+            #         continue
+            #
+            #     try:
+            #         # note that this serving URL supports size and crop query params
+            #         self.current_user.pic_url = images.get_serving_url(upload, secure_url=True)
+            #     except images.TransformationError:
+            #         upload.delete()
+            #         errors = {'corrupt': True}
+            #         continue
+            #
+            #     self.current_user.pic_gcs = upload.gs_object_name
+            #     self.current_user.pic_blob = upload.key()
 
             if errors:
                 return self.redisplay({}, errors)
@@ -120,6 +111,9 @@ class IndexController(FormController):
 
 
 class AuthsController(FormController):
+
+    # FUTURE: create a custom slug validator that looks for a period and also validates ints
+    FIELDS = {'auth_key': validateRequiredString}
 
     @web.authenticated
     def get(self):
@@ -132,14 +126,18 @@ class AuthsController(FormController):
     @web.authenticated
     def post(self):
 
-        str_key = self.get_argument('auth_key')
-        auth_key = model.Auth.slugToKey(str_key, parent_class=model.User)
+        form_data, errors, valid_data = self.validate()
+
+        if errors:
+            return self.redisplay(form_data, errors)
+
+        auth_key = model.Auth.slugToKey(valid_data['auth_key'], parent_class=model.User)
         if auth_key.parent != self.current_user.key:
             return self.renderError(403)
-        else:
-            model.db.delete(auth_key)
-            helpers.uncache(str_key)
-            self.flash('success', 'Access revoked.')
+
+        model.db.delete(auth_key)
+        helpers.uncache(valid_data['auth_key'])
+        self.flash('success', 'Access revoked.')
 
         self.redisplay()
 
@@ -339,13 +337,13 @@ class ResetPasswordController(BaseLoginController):
     @withoutUser
     def before(self):
         is_valid = False
-        self.key = self.get_argument("key")
-        self.token = self.get_argument("token")
+        self.key = self.get_argument("key", None)
+        self.token = self.get_argument("token", None)
         if self.key and self.token:
-            self.current_user = model.getByKey(self.key)
-            if self.current_user and self.current_user.token and self.token == self.current_user.token:
+            self.reset_user = model.User.getBySlug(self.key)
+            if self.reset_user and self.reset_user.token and self.token == self.reset_user.token:
                 # token is valid for one hour
-                if (datetime.utcnow() - self.current_user.token_date).total_seconds() < 3600:
+                if (datetime.utcnow() - self.reset_user.token_date).total_seconds() < 3600:
                     is_valid = True
 
         if not is_valid:
@@ -365,11 +363,11 @@ class ResetPasswordController(BaseLoginController):
         else:
             password_salt, hashed_password = model.User.changePassword(valid_data["password"])
             del valid_data["password"]
-            self.current_user.update(password_salt=password_salt, hashed_password=hashed_password,
+            self.reset_user.update(password_salt=password_salt, hashed_password=hashed_password,
                 token=None, token_date=None)
-            self.current_user.put()
+            self.reset_user.put()
 
             # need to uncache so that changes to the user object get picked up by the cache
-            helpers.uncache(self.current_user.slug)
+            helpers.uncache(self.reset_user.slug)
             self.flash("success", "Your password has been changed. You have been logged in with your new password.")
-            self.login(self.current_user)
+            self.login(self.reset_user)

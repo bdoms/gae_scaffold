@@ -23,10 +23,10 @@ if helpers.debug():
 # NOTE if you want to do different namespaces you can pass one to the client here and it'll use it by default
 
 # https://googleapis.github.io/google-cloud-python/latest/datastore/client.html
-db = datastore.Client() # credentials=creds, #project='test')
+db = datastore.Client() # credentials=creds, project='test')
 
 # TODO: production should either look like this:
-#db = datastore.Client() # auto from app engine env
+# db = datastore.Client() # auto from app engine env
 # or maybe this:
 # db = datastore.Client(os.getenv('GOOGLE_CLOUD_PROJECT', ''))
 
@@ -90,7 +90,12 @@ class BaseModel(object):
 
     def _updateProps(self):
         for prop in self.__class__.properties():
-            setattr(self, prop, self.entity.get(prop, None))
+            value = self.entity.get(prop, None)
+            if isinstance(value, datetime):
+                # normally datetime.utcnow() has no tzinfo, but adding it to the model gets the timezone 'UTC' added
+                # we correct for that here so that you can add, subtract, etc. without having to manipulate
+                value = value.replace(tzinfo=None)
+            setattr(self, prop, value)
 
     def put(self):
         db.put(self.entity)
@@ -148,12 +153,13 @@ class BooleanProperty(BaseProperty):
 
 class DateTimeProperty(BaseProperty):
 
-    def __init__(self, auto_now_add=False, auto_now=False):
+    def __init__(self, auto_now_add=False, auto_now=False, required=False):
         self.auto_now_add = auto_now_add
         self.auto_now = auto_now
+        self.required = required
 
     def validate(self, value):
-        return isinstance(value, datetime)
+        return isinstance(value, datetime) or (not self.required and value is None)
 
     @property
     def default(self):
@@ -168,7 +174,7 @@ class StringProperty(BaseProperty):
         self.required = required
 
     def validate(self, value):
-        if not isinstance(value, str):
+        if not isinstance(value, str) and value is not None:
             return False
         if self.required and not value:
             return False
@@ -197,7 +203,6 @@ class User(BaseModel):
     token = StringProperty()
     token_date = DateTimeProperty()
     pic_gcs = StringProperty()
-    #pic_blob = BlobKeyProperty()
     pic_url = StringProperty()
     is_admin = BooleanProperty(default=False)
     is_dev = BooleanProperty(default=False) # set this directly via the datastore console

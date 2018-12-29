@@ -15,7 +15,7 @@ sys.path.append(os.path.join(constants.LIB_PATH, 'httpagentparser'))
 sys.path.append(os.path.join(constants.LIB_PATH, 'gcs', 'python', 'src'))
 
 # logging setup
-# TODO: check that these get can be viewed in the logging console
+# TODO: check that these get can be viewed in the logging console in production
 access_log = logging.getLogger('tornado.access')
 access_log.setLevel(logging.INFO)
 application_log = logging.getLogger('tornado.application')
@@ -24,7 +24,7 @@ general_log = logging.getLogger('tornado.general')
 general_log.setLevel(logging.INFO)
 
 # URL routes
-from controllers import admin, api, dev, error, home, index, job, sitemap, static, user
+from controllers import admin, api, dev, error, home, index, job, sitemap, static, user # NOQA: E204
 
 handlers = [
     ('/', index.IndexController),
@@ -59,7 +59,12 @@ app = wsgi.WSGIApplication(handlers=handlers, template_path=constants.VIEWS_PATH
 # call this directly to not use dev_appserver.py for local development
 if __name__ == "__main__":
     from tornado import ioloop
-    from tornado.options import parse_command_line
-    parse_command_line()
-    app.listen(8888)
+    level = logging.DEBUG
+    access_log.setLevel(level)
+    application_log.setLevel(level)
+    general_log.setLevel(level)
+
+    port = 8888
+    app.listen(port)
+    general_log.info('Server running on port ' + str(port))
     ioloop.IOLoop.current().start()

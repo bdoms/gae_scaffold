@@ -127,8 +127,8 @@ def cache(key, function):
         del CACHE[remove_key]
 
     value = function()
-    CACHE[key] = value
     CACHE_KEYS.append(key)
+    CACHE[key] = value
     return value
 
 

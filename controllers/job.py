@@ -45,8 +45,8 @@ class EmailController(BaseController):
         to = self.get_arguments('to')
         subject = self.get_argument('subject')
         html = self.get_argument('html')
-        attachments_json = self.get_argument('attachments')
-        reply_to = self.get_argument('reply_to')
+        attachments_json = self.get_argument('attachments', None)
+        reply_to = self.get_argument('reply_to', None)
 
         body = helpers.strip_html(html)
 
@@ -84,7 +84,7 @@ class EmailController(BaseController):
             # which is way more helpful, so we get it manually
             try:
                 self.SENDGRID.client.mail.send.post(request_body=message.get())
-            except urllib.error.HTTPError:
+            except urllib.error.HTTPError as e:
                 self.logger.error(e.read())
         else:
             kwargs = {
