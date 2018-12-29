@@ -8,7 +8,7 @@ from tornado.httputil import HTTPServerRequest
 import tornado.web
 from webtest import TestApp
 
-# from config.constants import SUPPORT_EMAIL
+from config.constants import SENDER_EMAIL
 
 from base import BaseTestCase, UCHAR
 
@@ -868,23 +868,33 @@ class TestJob(BaseTestController):
         assert 'OK' in response
 
     def test_email(self):
+
+        logger = logging.getLogger('tornado.application')
+        orig_info = logger.info
+        self.message = ''
+
+        def info(message):
+            self.message = message
+
+        logger.info = info
+
         data = {
             'to': ('test' + UCHAR + '@example.com').encode('utf-8'),
             'subject': ('Subject' + UCHAR).encode('utf-8'),
             'html': ('<p>Test body' + UCHAR + '</p>').encode('utf-8')
         }
-        self.app.post('/job/email', data)
+        assert self.app.post('/job/email', data, status=200)
 
-        # messages = self.mail_stub.get_sent_messages()
-        # assert len(messages) == 1
-        # assert messages[0].to.encode('utf-8') == data['to']
-        # assert messages[0].subject.encode('utf-8') == data['subject']
-        # # having a unicode char triggers base64 encoding
-        # assert data['html'].encode('base64') in str(messages[0].html)
-        # assert ('Test body' + UCHAR).encode('utf-8').encode('base64') in str(messages[0].body)
-        # assert not hasattr(messages[0], 'reply_to')
+        assert self.message['sender'] == SENDER_EMAIL
+        assert self.message['to'] == data['to'].decode('utf8')
+        assert self.message['subject'] == data['subject'].decode('utf8')
+        assert self.message['html'] == data['html'].decode('utf8')
+        assert self.message['body'] == 'Test body' + UCHAR # plaintext non-html version
+        assert not self.message.get('reply_to')
+        assert not self.message.get('attachments')
 
-        content = base64.b64encode(b'content').decode()
+        raw_content = b'content'
+        content = base64.b64encode(raw_content).decode()
         cid = 'content-id'
         filename = 'file.ext'
         attachments = [{'content': content, 'content_id': cid, 'filename': filename, 'type': 'mime/type'}]
@@ -892,12 +902,17 @@ class TestJob(BaseTestController):
         data['reply_to'] = ('test.reply' + UCHAR + '@example.com').encode('utf-8')
         self.app.post('/job/email', data)
 
-        # messages = self.mail_stub.get_sent_messages()
-        # assert len(messages) == 2
-        # assert hasattr(messages[1], 'reply_to')
-        # assert messages[1].reply_to.encode('utf-8') == data['reply_to']
-        #
-        # original = str(messages[1].original)
-        # assert content in original
-        # assert cid in original
-        # assert filename in original
+        assert self.message['sender'] == SENDER_EMAIL
+        assert self.message['to'] == data['to'].decode('utf8')
+        assert self.message['subject'] == data['subject'].decode('utf8')
+        assert self.message['html'] == data['html'].decode('utf8')
+        assert self.message['body'] == 'Test body' + UCHAR # plaintext non-html version
+        assert self.message.get('reply_to') == data['reply_to'].decode('utf8')
+
+        assert len(self.message.get('attachments', [])) == 1
+        original = self.message['attachments'][0]
+        assert raw_content in original
+        assert cid in original
+        assert filename in original
+
+        logger.info = orig_info

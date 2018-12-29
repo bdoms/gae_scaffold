@@ -10,8 +10,6 @@ UCHAR = u"\u03B4" # lowercase delta
 class BaseTestCase(unittest.TestCase):
 
     def setUp(self):
-        # TODO: stub for testing mail
-
         # need to post to the emulator to reset old data
         # https://stackoverflow.com/questions/46956758/google-datastore-emulator-remove-data-from-local-database'
         urllib.request.urlopen('http://' + DATASTORE_EMULATOR_HOST + '/reset', {})
