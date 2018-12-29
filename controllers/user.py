@@ -43,7 +43,7 @@ class BaseLoginController(FormController):
             if 'dist' in parsed:
                 # "dist" stands for "distribution" - like Android, iOS
                 device = parsed['dist']['name']
-            auth = model.Auth.create(user_agent=ua, os=os, browser=browser, device=device, ip=ip, parent=user.key)
+            auth = model.Auth.create(user_agent=ua, os=os, browser=browser, device=device, ip=ip, parent_key=user.key)
             auth.put()
 
         expires_days = remember and AUTH_EXPIRES_DAYS or None
@@ -343,7 +343,7 @@ class ResetPasswordController(BaseLoginController):
             self.reset_user = model.User.getBySlug(self.key)
             if self.reset_user and self.reset_user.token and self.token == self.reset_user.token:
                 # token is valid for one hour
-                if (datetime.utcnow() - self.reset_user.token_date).total_seconds() < 3600:
+                if (datetime.utcnow() - self.reset_user.token_dt).total_seconds() < 3600:
                     is_valid = True
 
         if not is_valid:
@@ -364,7 +364,7 @@ class ResetPasswordController(BaseLoginController):
             password_salt, hashed_password = model.User.changePassword(valid_data["password"])
             del valid_data["password"]
             self.reset_user.update(password_salt=password_salt, hashed_password=hashed_password,
-                token=None, token_date=None)
+                token=None, token_dt=None)
             self.reset_user.put()
 
             # need to uncache so that changes to the user object get picked up by the cache

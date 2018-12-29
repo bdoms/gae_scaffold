@@ -579,8 +579,8 @@ class TestUser(BaseTestController):
 
         response = self.app.get('/user/auths')
         assert '<h2>Active Sessions</h2>' in response
-        assert user_auth.last_login.isoformat() in response
         assert user_auth.slug not in response
+        assert user_auth.modified_dt.isoformat() in response
         assert 'Current Session' in response
 
         data = {'auth_key': ''}
@@ -806,7 +806,7 @@ class TestUser(BaseTestController):
         assert '<h2>Reset Password</h2>' in response
 
         # fails when we move back the date
-        self.user.update(token_date=self.user.token_date - timedelta(seconds=3600))
+        self.user.update(token_dt=self.user.token_dt - timedelta(seconds=3600))
         self.user.put()
         response = self.app.get('/user/resetpassword?key=' + key + '&token=' + token)
         response = response.follow()

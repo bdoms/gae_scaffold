@@ -53,14 +53,23 @@ class BaseTestCase(unittest.TestCase):
         user.put()
         user.password = password # for convenience with signing in during testing
 
-        if email == "test" + UCHAR + "@example.com":
+        if not hasattr(self, 'user'):
             # this is the default, so add an easy reference to it
             self.user = user
 
         return user
 
-    def createAuth(self, user):
+    def createAuth(self, user=None):
+        if not user:
+            if not hasattr(self, 'user'):
+                self.createUser()
+            user = self.user
+
         auth = self.model.Auth.create(user_agent='test user agent' + UCHAR, os='test os' + UCHAR,
-            browser='test browser' + UCHAR, device='test device' + UCHAR, ip='127.0.0.1', parent=user.key)
+            browser='test browser' + UCHAR, device='test device' + UCHAR, ip='127.0.0.1', parent_key=user.key)
         auth.put()
+
+        if not hasattr(self, 'auth'):
+            self.auth = auth
+
         return auth
