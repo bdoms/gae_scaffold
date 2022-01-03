@@ -73,7 +73,7 @@ class DevController(FormController):
                 entities = list(q.fetch(keys_only=True))
                 if len(entities) > 0:
                     # note that keys_only still returns the whole entity object
-                    model.db.delete_multi([entity.key for entity in entities])
+                    model.db.delete_multi(entities)
 
             # add any fixtures needed for development here
             password_salt, hashed_password = model.User.changePassword('test')
